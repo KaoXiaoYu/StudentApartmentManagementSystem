@@ -1,0 +1,26 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+*.idea
+*.log
+
+# Java
+webDemo/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Node
+vue-demo/node_modules/
+vue-demo/dist/
+vue-demo/.DS_Store
+
+# Build
+*.class
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db

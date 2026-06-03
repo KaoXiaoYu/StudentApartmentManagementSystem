@@ -1,0 +1,19 @@
+$blue: #324157;
+$red: #C03639;
+$green: #30B08F;
+
+$menuText: #bfcbd9;
+$menuActiveText: #409eff;
+$menuBg: #1a1f2e;
+
+$base-sidebar-width: 200px;
+
+:root {
+  --blue: #{$blue};
+  --red: #{$red};
+  --green: #{$green};
+  --menu-text: #{$menuText};
+  --menu-active-text: #{$menuActiveText};
+  --menu-bg: #{$menuBg};
+  --sidebar-width: #{$base-sidebar-width};
+}
