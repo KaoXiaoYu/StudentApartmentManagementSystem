@@ -87,6 +87,14 @@
         <span class="footer-text">SECURE CONNECTION ESTABLISHED</span>
         <div class="footer-line"></div>
       </div>
+      
+      <div class="register-link">
+        <span class="link-text">还没有账号？</span>
+        <el-link type="primary" :underline="false" class="register-btn" @click="$router.push('/register')">
+          <span>立即注册</span>
+          <el-icon :size="16"><ArrowRight /></el-icon>
+        </el-link>
+      </div>
     </div>
     
     <!-- 角落装饰 -->
@@ -417,6 +425,37 @@ const handleLogin = async () => {
 .footer-text {
   font-size: 10px;
   color: rgba(255,255,255,.6);
+}
+
+/* 注册链接 */
+.register-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.link-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.register-btn {
+  font-size: 13px;
+  color: #ff95d1;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: .3s;
+}
+
+.register-btn:hover {
+  color: #ffb8d9;
+  transform: translateX(4px);
 }
 
 /* 装饰 */

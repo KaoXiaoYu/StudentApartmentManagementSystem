@@ -1,109 +1,141 @@
 <template>
-  <div class="auth-container">
-    <div class="auth-card">
-      <!-- 左侧品牌展示区 -->
-      <div class="auth-left">
-        <div class="auth-left-bg"></div>
-        <div class="auth-left-content">
-          <div class="brand-header">
-            <div class="brand-logo">
-              <el-icon :size="24"><Grid /></el-icon>
-            </div>
-            <span class="brand-name">Enterprise Pro</span>
+  <div class="cyber-container">
+    <!-- 二次元半透明背景 -->
+    <div class="bg-image" :style="{ backgroundImage: `url(${bgUrl})` }"></div>
+    
+    <!-- 赛博朋克网格 + 扫描线特效 -->
+    <div class="cyber-grid"></div>
+    <div class="cyber-scanlines"></div>
+    
+    <!-- 毛玻璃注册卡片 -->
+    <div class="cyber-card">
+      <div class="card-glow"></div>
+      
+      <div class="card-header">
+        <div class="logo-container">
+          <div class="logo-icon">
+            <el-icon :size="32"><Grid /></el-icon>
           </div>
-          <h1 class="brand-title">
-            助力企业数字化<br />转型新高度
-          </h1>
-          <ul class="brand-features">
-            <li>
-              <el-icon><CircleCheck /></el-icon>
-              <span>全链路业务流程自动化管理</span>
-            </li>
-            <li>
-              <el-icon><CircleCheck /></el-icon>
-              <span>金融级数据加密与安全保障</span>
-            </li>
-            <li>
-              <el-icon><CircleCheck /></el-icon>
-              <span>实时数据分析与智能报表决策</span>
-            </li>
-          </ul>
+          <div class="logo-text">
+            <span class="logo-title">✨ 权限管理系统 ✨</span>
+            <span class="logo-subtitle">Anime Cyber System</span>
+          </div>
         </div>
-        <div class="auth-left-footer">
-          <img
-            class="illustration"
-            src="https://modao.cc/agent-py/media/generated_images/2026-05-25/4f43a216beb74665b0320b0ea00f8668.jpg"
-            alt="Business illustration"
-          />
-          <p class="copyright">&copy; 2026 Enterprise Pro SaaS Group. All rights reserved.</p>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>REGISTER</span>
         </div>
       </div>
-
-      <!-- 右侧注册表单 -->
-      <div class="auth-right">
-        <div class="auth-form-wrapper">
-          <div class="form-header">
-            <el-link class="back-link" type="info" :underline="false" @click="$router.push('/login')">
-              <el-icon><ArrowLeft /></el-icon> 返回登录
-            </el-link>
-            <h2 class="form-title">创建企业账号</h2>
-            <p class="form-subtitle">加入 Enterprise Pro，开启高效管理之旅</p>
-          </div>
-
-          <el-form
-            ref="registerFormRef"
-            :model="registerForm"
-            :rules="registerRules"
-            label-position="top"
-            @submit.prevent="handleRegister"
-          >
-            <el-form-item label="账号" prop="username">
+      
+      <div class="form-section">
+        <div class="form-glitch">
+          <h2 class="form-title">
+            <span class="glitch-text">CREATE ACCOUNT</span>
+          </h2>
+          <p class="form-subtitle">REGISTER YOUR CREDENTIALS</p>
+        </div>
+        
+        <el-form
+          ref="registerFormRef"
+          :model="registerForm"
+          :rules="registerRules"
+          label-position="top"
+          class="cyber-form"
+        >
+          <div class="input-group">
+            <div class="input-glow"></div>
+            <el-form-item prop="username" class="no-label">
               <el-input
                 v-model="registerForm.username"
-                placeholder="请输入账号"
+                placeholder="USERNAME / 账号"
                 :prefix-icon="User"
                 size="large"
+                class="cyber-input"
               />
             </el-form-item>
-
-            <el-form-item label="密码" prop="password">
+          </div>
+          
+          <div class="input-group">
+            <div class="input-glow"></div>
+            <el-form-item prop="password" class="no-label">
               <el-input
                 v-model="registerForm.password"
-                placeholder="请输入密码"
+                placeholder="PASSWORD / 密码"
                 type="password"
                 show-password
                 :prefix-icon="Lock"
                 size="large"
+                class="cyber-input"
               />
             </el-form-item>
-
-            <el-form-item label="确认密码" prop="confirmPassword">
+          </div>
+          
+          <div class="input-group">
+            <div class="input-glow"></div>
+            <el-form-item prop="confirmPassword" class="no-label">
               <el-input
                 v-model="registerForm.confirmPassword"
-                placeholder="请再次输入密码"
+                placeholder="CONFIRM PASSWORD / 确认密码"
                 type="password"
                 show-password
                 :prefix-icon="Lock"
                 size="large"
+                class="cyber-input"
               />
             </el-form-item>
-
-            <el-button
-              type="primary"
-              size="large"
-              class="submit-btn"
-              :loading="registering"
-              @click="handleRegister"
-            >
-              完成注册
-            </el-button>
-          </el-form>
-
-          <p class="switch-tip">
-            已有账号？<el-link type="primary" :underline="false" @click="$router.push('/login')">立即登录</el-link>
-          </p>
-        </div>
+          </div>
+          
+          <el-button
+            type="primary"
+            size="large"
+            class="cyber-btn"
+            :loading="registering"
+            @click="handleRegister"
+          >
+            <span class="btn-text">注 册</span>
+            <el-icon :size="18"><ArrowRight /></el-icon>
+          </el-button>
+        </el-form>
       </div>
+      
+      <div class="card-footer">
+        <div class="footer-line"></div>
+        <span class="footer-text">SECURE CONNECTION ESTABLISHED</span>
+        <div class="footer-line"></div>
+      </div>
+      
+      <div class="login-link">
+        <span class="link-text">已有账号？</span>
+        <el-link type="primary" :underline="false" class="login-btn" @click="$router.push('/login')">
+          <el-icon :size="16"><ArrowLeft /></el-icon>
+          <span>返回登录</span>
+        </el-link>
+      </div>
+    </div>
+    
+    <!-- 角落装饰 -->
+    <div class="corner-decoration top-left">
+      <div class="corner-line"></div>
+      <div class="corner-line"></div>
+    </div>
+    <div class="corner-decoration top-right">
+      <div class="corner-line"></div>
+      <div class="corner-line"></div>
+    </div>
+    <div class="corner-decoration bottom-left">
+      <div class="corner-line"></div>
+      <div class="corner-line"></div>
+    </div>
+    <div class="corner-decoration bottom-right">
+      <div class="corner-line"></div>
+      <div class="corner-line"></div>
+    </div>
+    
+    <!-- 浮动光效 -->
+    <div class="floating-elements">
+      <div class="float-element float-1"></div>
+      <div class="float-element float-2"></div>
+      <div class="float-element float-3"></div>
     </div>
   </div>
 </template>
@@ -112,9 +144,13 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Grid, CircleCheck, ArrowLeft, User, Lock } from '@element-plus/icons-vue'
+import { User, Lock, Grid, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
+
+// ============== 二次元背景图（可修改） ==============
+const bgUrl = ref('/src/assets/bg/ZDPGdIkVQXqaRmEh2B0Cain4N5M.cnt.jpg')
+// =====================================================
 
 const registerFormRef = ref(null)
 const registering = ref(false)
@@ -159,187 +195,323 @@ const handleRegister = async () => {
 </script>
 
 <style lang="scss" scoped>
-.auth-container {
+.cyber-container {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background-color: #f1f5f9;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 1000px;
-  min-height: 640px;
-  display: flex;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  background: #fff;
-}
-
-// ===== 左侧品牌区 =====
-.auth-left {
-  display: none;
-  width: 50%;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  padding: 48px;
-  flex-direction: column;
-  justify-content: space-between;
   position: relative;
   overflow: hidden;
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.auth-left-bg {
-  position: absolute;
+/* 二次元半透明背景 */
+.bg-image {
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.08;
-  background:
-    radial-gradient(circle at 100% 0%, white 0%, transparent 50%),
-    radial-gradient(circle at 0% 100%, white 0%, transparent 50%);
-  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  z-index: 0;
 }
 
-.auth-left-content {
-  position: relative;
+/* 赛博网格 */
+.cyber-grid {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
   z-index: 1;
 }
 
-.brand-header {
+/* 扫描线 */
+.cyber-scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 主卡片 - 毛玻璃 + 二次元风格 */
+.cyber-card {
+  position: relative;
+  z-index: 10;
+  width: 420px;
+  padding: 45px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(255, 180, 220, 0.15) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* 头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.logo-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #ff95d1, #a8bfff);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 150, 200, 0.5);
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255, 180, 220, 0.6);
+}
+
+.logo-subtitle {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #a8ffb8;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #a8ffb8;
+  border-radius: 50%;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%,100%{opacity:1}50%{opacity:.3}
+}
+
+/* 标题 */
+.form-glitch {
+  text-align: center;
   margin-bottom: 32px;
 }
 
-.brand-logo {
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #2563eb;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.brand-name {
-  color: #fff;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.brand-title {
-  color: #fff;
-  font-size: 36px;
-  font-weight: 800;
-  line-height: 1.3;
-  margin-bottom: 24px;
-}
-
-.brand-features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #bfdbfe;
-    padding: 8px 0;
-
-    .el-icon {
-      color: #93c5fd;
-      font-size: 18px;
-    }
-  }
-}
-
-.auth-left-footer {
-  position: relative;
-  z-index: 1;
-}
-
-.illustration {
-  width: 100%;
-  height: 120px;
-  object-fit: contain;
-  margin-bottom: 16px;
-}
-
-.copyright {
-  color: #93c5fd;
-  font-size: 12px;
-}
-
-// ===== 右侧表单 =====
-.auth-right {
-  width: 100%;
-  padding: 48px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  @media (min-width: 768px) {
-    width: 50%;
-  }
-}
-
-.auth-form-wrapper {
-  width: 100%;
-  max-width: 360px;
-  margin: 0 auto;
-}
-
-.form-header {
-  margin-bottom: 24px;
-}
-
-.back-link {
-  margin-bottom: 12px;
-  font-size: 13px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .form-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 4px;
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 180, 220, 0.6);
 }
 
 .form-subtitle {
-  color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
+  color: rgba(255,255,255,.6);
+  margin-top: 8px;
 }
 
-.submit-btn {
+/* 输入框 */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  background: linear-gradient(135deg, rgba(255,150,200,0.3), rgba(160,180,255,0.3));
+  border-radius: 12px;
+  opacity: 0;
+  transition: .3s;
+}
+
+.input-group:focus-within .input-glow {
+  opacity: 1;
+}
+
+.cyber-input {
   width: 100%;
-  padding: 12px 0;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
 }
 
-.switch-tip {
-  margin-top: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: #64748b;
+:deep(.el-input__wrapper) {
+  background: rgba(255,255,255,.5) !important;
+  border-radius: 8px;
+  border: none;
+}
+
+/* 按钮 */
+.cyber-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(45deg, #ff95d1, #a8bfff);
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: .3s;
+}
+
+.cyber-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255,150,200,.3);
+}
+
+/* 底部 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.3);
+}
+
+.footer-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.3);
+}
+
+.footer-text {
+  font-size: 10px;
+  color: rgba(255,255,255,.6);
+}
+
+/* 登录链接 */
+.login-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.link-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.login-btn {
+  font-size: 13px;
+  color: #ff95d1;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: .3s;
+}
+
+.login-btn:hover {
+  color: #ffb8d9;
+  transform: translateX(-4px);
+}
+
+/* 装饰 */
+.corner-decoration {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  z-index: 5;
+}
+.corner-line {
+  position: absolute;
+  width: 20px;
+  height: 1px;
+  background: rgba(255,255,255,.4);
+}
+
+.top-left {top:16px;left:16px}
+.top-right {top:16px;right:16px}
+.bottom-left {bottom:16px;left:16px}
+.bottom-right {bottom:16px;right:16px}
+
+.floating-elements {
+  position: absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.float-element {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,180,220,0.2) 0%, transparent 70%);
+  animation: float 8s infinite ease-in-out;
+}
+
+.float-1{width:100px;height:100px;top:20%;right:10%}
+.float-2{width:60px;height:60px;bottom:30%;left:15%;animation-delay:-3s}
+.float-3{width:80px;height:80px;top:60%;right:25%;animation-delay:-5s}
+
+@keyframes float {
+  0%,100%{transform:translate(0);opacity:.3}
+  50%{transform:translateY(-20px);opacity:.6}
 }
 </style>
-
