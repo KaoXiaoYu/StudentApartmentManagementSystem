@@ -36,6 +36,9 @@
 <div class="login-container">
     <h2 style="text-align: center;">系统登录</h2>
 
+    <%-- 返回错误信息--%>
+    <div style="color: red;">${login_msg}</div>
+
     <!-- 核心表单部分 -->
     <form action="login" method="post">
         <div class="form-group">
@@ -47,7 +50,9 @@
             <label for="password">密码：</label>
             <input type="password" id="password" name="password" placeholder="请输入密码" required>
         </div>
-
+        <label>
+            <input type="checkbox" name="remember" value="1"> 记住我 (一周)
+        </label>
         <button type="submit">登 录</button>
     </form>
 </div>
