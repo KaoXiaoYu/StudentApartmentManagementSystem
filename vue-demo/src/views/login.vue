@@ -127,9 +127,12 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import { User, Lock, Grid, ArrowRight } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { setToken, setUserInfo } from '@/utils/cookie'
+
+const router = useRouter()
 
 // ============== 二次元背景图（可修改） ==============
 const bgUrl = ref('/src/assets/bg/ZDPGdIkVQXqaRmEh2B0Cain4N5M.cnt.jpg')
@@ -152,23 +155,30 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const res = await request({
-      url: '/login',
-      method: 'post',
-      data: {
-        username: loginForm.value.username,
-        password: loginForm.value.password
-      }
-    })
+    // 模拟登录成功
+    // const res = await request({
+    //   url: '/login',
+    //   method: 'post',
+    //   data: {
+    //     username: loginForm.value.username,
+    //     password: loginForm.value.password
+    //   }
+    // })
+    
+    // 模拟成功响应
+    const res = { code: 200, data: { username: loginForm.value.username, name: '管理员', role: 'admin' } }
     
     if (res.code === 200) {
       ElMessage.success('登录成功！')
-      // 保存用户信息到cookie
+      // 保存token到localStorage
+      localStorage.setItem('token', 'mock-token-' + Date.now())
+      // 保存用户信息
       if (res.data) {
+        localStorage.setItem('userInfo', JSON.stringify(res.data))
         setUserInfo(JSON.stringify(res.data))
       }
       // 跳转到首页
-      window.location.href = '/'
+      router.push('/dashboard')
     } else {
       ElMessage.error(res.message || '登录失败')
     }
