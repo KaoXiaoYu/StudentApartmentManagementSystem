@@ -2,8 +2,6 @@ package service;
 import Controller.IsLogged;
 
 import java.io.*;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,13 +11,43 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.Cookie;
 
+import static jdk.xml.internal.SecuritySupport.getJAXPSystemProperty;
+
 /**
  * Login功能测试
  * @author KaoXiaoYu
  * Time  2026年6月5日
  */
-@WebServlet("/login")
-public class LoginServlet extends HttpServlet {
+@WebServlet("/login1")
+public class LoginServlet114 extends HttpServlet {
+
+    LoginServlet114(){
+        System.out.println("/login is used!");
+    }
+
+    private static String url;
+    private static String dbusr;
+    private static String dbpswd;
+
+//    static{
+//        try {
+//            Properties props = new Properties();
+//            // 通过类加载器获取配置文件输入流
+//            InputStream in = getClassLoader().getResourceAsStream("database.properties");
+//            if (in == null) throw new RuntimeException("找不到 database.properties 文件");
+//            props.load(in);
+//            //注册驱动
+//            Class.forName("com.mysql.cj.jdbc.Driver");
+//            //加载数据库信息
+//            url = props.getProperty("Db.url");
+//            dbusr= props.getProperty("Db.usr");
+//            dbpswd = props.getProperty("Db.pswd");
+//
+//        } catch (Exception e) {
+//            throw new ExceptionInInitializerError(e);
+//        }
+//    }
+
     @Override
     public void init(ServletConfig config) throws ServletException {
         System.out.println("/login Servlet has been init!");
@@ -46,25 +74,41 @@ public class LoginServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/HOME");
             return;
         }
-
-
-        String sql = "select * from student_info where student_id=? ";
         req.setCharacterEncoding("UTF-8");
         // 获取前端传来的账号和密码，此处暂时无功能，作为演示使用
         String username = req.getParameter("username");
         String password = req.getParameter("password");
 
+        String sql,info;//输入的是手机号/学生号
+        if(username.length()==11){
+            sql = "select * from student_info where phone_number=? ";
+            info="phone_number";
+        }else{
+            sql = "select * from student_info where student_id=? ";
+            info="student_id";
+        }
 
-        //连接数据库
-
-
+        String pswd=null;
+//        //连接数据库
+//        try (Connection conn = DriverManager.getConnection(url, dbusr, dbpswd);
+//             PreparedStatement pstmt = conn.prepareStatement(sql);) {
+//            pstmt.setInt(1, 20);
+//            // 执行查询并获取结果集
+//            try (ResultSet rs = pstmt.executeQuery()) {
+//                while (rs.next()) {
+//                    pswd= rs.getString("password");
+//                    System.out.println(pswd);
+//                    rs.close();
+//                }
+//            }
+//        } catch (SQLException e) {
+//            System.out.println("数据库链接失败");
+//            e.printStackTrace();
+//        }
 
 
         //执行账号密码校验功能
-        boolean isAuthenticated = false ;
-        if("admin".equals(username)&&"123456".equals(password)){
-            isAuthenticated = true;
-        }
+        boolean isAuthenticated = password.equals(pswd);
 
 
         if (isAuthenticated) {
