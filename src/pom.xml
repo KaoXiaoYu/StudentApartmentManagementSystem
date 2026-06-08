@@ -13,7 +13,21 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    
+
+    <build>
+        <resources>
+            <!-- 确保 resources 目录下的 properties 文件被打包 -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
+
     <dependencies>
     <!--集中声明依赖-->
 
@@ -23,5 +37,13 @@
             <version>3.1.0</version>
             <scope>compile</scope>
         </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.31</version>
+        </dependency>
+
+
     </dependencies>
 </project>
