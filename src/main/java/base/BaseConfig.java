@@ -1,4 +1,5 @@
 package base;
+import model.User;
 
 import com.jfinal.config.JFinalConfig;
 
@@ -48,6 +49,14 @@ public class BaseConfig extends JFinalConfig {
 
         DruidPlugin dp = new DruidPlugin(url, dbusr, dbpswd);
         plugins.add(dp);
+        ActiveRecordPlugin arp = new ActiveRecordPlugin(dp);
+        // 开启 SQL 打印，方便调试
+        arp.setShowSql(true);
+        // 将 ActiveRecord 插件添加到容器中
+        plugins.add(arp);
+        // (重要) 绑定表名和 Model 类
+//        假设你的表名是 student_info，主键是 id
+        arp.addMapping("student_info", User.class);
     }
 
     @Override

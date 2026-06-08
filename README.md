@@ -16,4 +16,31 @@ just for better apartment management
 └──webapp\
 &emsp;&emsp;└── WEB-INF
 
+## 接口
+
+### *用户注册*
+    POST /user/register
+
+JSON格式
+
+        {
+        "phone_number": "phone_number",
+        "student_id": "student_id"
+        "password": "114514",
+        "unit_id": "unit_id",
+        "room_id": "room_id"
+        }
+
+
+### *用户登录*
+    POST /user/login
+
+JSON格式
+
+        {
+        "username": "Username",
+        "is_phone_number": "false",
+        "password": "Password",
+        "remember":"false"
+        }
 
