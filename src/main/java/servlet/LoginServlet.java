@@ -20,7 +20,7 @@ import javax.servlet.http.Cookie;
  * @author KaoXiaoYu
  * Time  2026年6月5日
  */
-@WebServlet("/login")
+//@WebServlet("/login")
 public class LoginServlet extends HttpServlet {
 
     //Class.forName("com.mysql.cj.jdbc.Driver");

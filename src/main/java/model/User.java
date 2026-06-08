@@ -12,7 +12,7 @@ public class User extends Model<User> {
     public List<Record> loadPswd(String key){
         String sql = "select * from student_info where";
         if(key.length()==11)sql+=" phone_number = ? ";
-        else sql+="student_id=?";
+        else sql+="student_id = ? ";
         return Db.find(sql,key);
     }
 
