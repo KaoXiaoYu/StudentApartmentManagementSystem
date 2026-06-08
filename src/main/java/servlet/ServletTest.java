@@ -1,4 +1,4 @@
-package service;
+package servlet;
 import java.io.*;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;

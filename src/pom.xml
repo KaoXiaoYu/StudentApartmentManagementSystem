@@ -14,24 +14,25 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <build>
-        <resources>
-            <!-- 确保 resources 目录下的 properties 文件被打包 -->
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>**/*.properties</include>
-                    <include>**/*.xml</include>
-                </includes>
-                <filtering>false</filtering>
-            </resource>
-        </resources>
-    </build>
+<!--    <build>-->
+<!--        <resources>-->
+<!--            &lt;!&ndash; 确保 resources 目录下的 properties 文件被打包 &ndash;&gt;-->
+<!--            <resource>-->
+<!--                <directory>src/main/resources</directory>-->
+<!--                <includes>-->
+<!--                    <include>**/*.properties</include>-->
+<!--                    <include>**/*.xml</include>-->
+<!--                </includes>-->
+<!--                <filtering>false</filtering>-->
+<!--            </resource>-->
+<!--        </resources>-->
+<!--    </build>-->
 
     <dependencies>
     <!--集中声明依赖-->
 
         <dependency>
+            <!--servlet依赖-->
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
@@ -39,9 +40,23 @@
         </dependency>
 
         <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.2.18</version>
+        </dependency>
+
+        <dependency>
+            <!--mysql驱动依赖-->
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.31</version>
+        </dependency>
+
+        <dependency>
+            <!--jfinal依赖-->
+            <groupId>com.jfinal</groupId>
+            <artifactId>jfinal</artifactId>
+            <version>5.2.5</version>
         </dependency>
 
 

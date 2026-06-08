@@ -4,5 +4,20 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
          version="4.0">
 
+    <display-name>SAMS</display-name>
+    <filter>
+        <filter-name>jfinal</filter-name>
+        <!-- 这里的类名必须是你项目中继承 JFinalConfig 的那个类的完整包名+类名 -->
+        <filter-class>com.jfinal.core.JFinalFilter</filter-class>
+        <init-param>
+            <param-name>configClass</param-name>
+            <param-value>base.BaseConfig</param-value>
+        </init-param>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>jfinal</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
 
 </web-app>

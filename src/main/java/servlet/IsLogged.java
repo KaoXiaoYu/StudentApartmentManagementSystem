@@ -1,4 +1,4 @@
-package Controller;
+package servlet;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;

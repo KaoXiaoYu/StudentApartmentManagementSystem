@@ -1,7 +1,9 @@
-package service;
-import Controller.IsLogged;
+package servlet;
 
 import java.io.*;
+import java.sql.*;
+import com.jfinal.kit.PropKit;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -11,16 +13,28 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.Cookie;
 
+
+
 /**
  * Login功能测试
  * @author KaoXiaoYu
  * Time  2026年6月5日
  */
-@WebServlet("/login514")
-public class LoginServlet514 extends HttpServlet {
+@WebServlet("/login")
+public class LoginServlet extends HttpServlet {
+
+    //Class.forName("com.mysql.cj.jdbc.Driver");
+
+    String url=PropKit.use("database.properties").get("student_info_url_mysql");
+    String dbusr=PropKit.use("database.properties").get("student_info_usr_mysql");
+    String dbpswd=PropKit.use("database.properties").get("student_info_pswd_mysql");
+    String driver=PropKit.use("database.properties").get("student_info_driver_mysql");
+
+
     @Override
     public void init(ServletConfig config) throws ServletException {
         System.out.println("/login Servlet has been init!");
+        System.out.println(url);
     }
 
     @Override
@@ -44,24 +58,43 @@ public class LoginServlet514 extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/HOME");
             return;
         }
-
-
-        String sql = "select * from student_info where student_id=? ";
         req.setCharacterEncoding("UTF-8");
         // 获取前端传来的账号和密码，此处暂时无功能，作为演示使用
         String username = req.getParameter("username");
         String password = req.getParameter("password");
 
+        String sql,info;//输入的是手机号/学生号
+        if(username.length()==11){
+            sql = "select * from student_info where phone_number=? ";
+            info="phone_number";
+        }else{
+            sql = "select * from student_info where student_id=? ";
+            info="student_id";
+        }
 
+        String pswd=null;
         //连接数据库
-
-
+        try (Connection conn = DriverManager.getConnection(url, dbusr, dbpswd);
+             PreparedStatement pstmt = conn.prepareStatement(sql);) {
+            pstmt.setInt(1, 20);
+            // 执行查询并获取结果集
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    pswd= rs.getString("password");
+                    System.out.println(pswd);
+                    rs.close();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("数据库链接失败");
+            e.fillInStackTrace();
+        }
 
 
         //执行账号密码校验功能
-        boolean isAuthenticated = false ;
-        if("admin".equals(username)&&"123456".equals(password)){
-            isAuthenticated = true;
+        boolean isAuthenticated = false;
+        if (pswd != null) {
+            isAuthenticated = pswd.equals(password);
         }
 
 
