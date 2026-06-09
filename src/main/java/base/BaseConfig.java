@@ -24,7 +24,6 @@ public class BaseConfig extends JFinalConfig {
 
     @Override
     public void configRoute(Routes routes) {
-
         System.out.println("configRoute init!");
         routes.add("/user",UserController.class);
 
@@ -55,7 +54,6 @@ public class BaseConfig extends JFinalConfig {
         // 将 ActiveRecord 插件添加到容器中
         plugins.add(arp);
         // (重要) 绑定表名和 Model 类
-//        假设你的表名是 student_info，主键是 id
         arp.addMapping("student_info", User.class);
     }
 

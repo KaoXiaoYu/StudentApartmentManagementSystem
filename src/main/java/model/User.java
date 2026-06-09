@@ -8,25 +8,34 @@ import com.jfinal.plugin.activerecord.Record;
 import java.util.List;
 import java.util.Map;
 
+import com.jfinal.core.Controller;
+
 public class User extends Model<User> {
     public static final User dao = new User();
 
-    public User doRegister(Map map){
+    public void doRegister(Map map){
         String phone_number = (String) map.get("phone_number");
         String student_id = (String) map.get("student_id");
         String password = (String) map.get("password");
         String unit_id = (String) map.get("unit_id");
         String room_id = (String) map.get("room_id");
         User user = new User();
+        String sql = "select * from student_info where ";
+        List<Record> rpn= Db.find(sql+"phone_number = ? ",phone_number);
+        if (rpn != null && !rpn.isEmpty() && rpn.get(0).getInt("c") > 0) {
+            throw new RuntimeException("PHONE_EXISTS"); // 标记：手机号已存在
+        }
+        List<Record> rsi= Db.find(sql+"student_id = ? ",student_id);
+        if (rsi != null && !rsi.isEmpty() && rsi.get(0).getInt("c") > 0) {
+            throw new RuntimeException("STUDENT_ID_EXISTS"); // 标记：学号已存在
+        }
         user.set("phone_number", phone_number);
         user.set("student_id",student_id);
         user.set("password", password);
         user.set("unit_id", unit_id);
         user.set("room_id", room_id);
         user.set("permission",1);
-
-        //user.save();
-        return user;
+        user.save();
     }
 
     public User doLogin(Map map) {

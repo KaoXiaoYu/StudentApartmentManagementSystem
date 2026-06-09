@@ -1,31 +1,28 @@
 package validator;
 
-
 import com.jfinal.core.Controller;
 import com.jfinal.validate.Validator;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
-
-public class LoginValidator extends Validator {
+public class RegisterValidator extends Validator {
 
     @Override
     protected void validate(Controller c) {
-        // 校验账号：不能为空，且长度在 3-20 之间
-        validateRequiredString("username", "usernameMsg", "用户名不能为空");
-        validateLong("username",11,11,"usernameMsg","必须为11位的电话号码或者学号");
+        validateRequiredString("phone_number", "phone_numberMsg", "电话号码不能为空");
+        validateLong("phone_number",11,11,"phone_numberMsg","电话号码必须为11位");
 
-        // 校验密码：不能为空，且长度在 6-30 之间
+        validateRequiredString("student_id", "student_id", "学号不能为空");
+        validateLong("student_id",11,11,"student_idMsg","学号必须为11位");
+
         validateRequiredString("password", "passwordMsg", "密码不能为空");
         validateLong("password",3,20,"passwordMsg","密码不能短于3位，不能长于20位");
+
     }
 
     @Override
     protected void handleError(Controller c) {
-        // 不需要 keepPara，因为前端已经保存了用户输入的账号密码
-        // 直接返回统一的 JSON 错误格式给前端
         Map<String, Object> result = new HashMap<>();
         result.put("code", 400);
         result.put("msg", c.getAttr("errorMsg")); // 获取你在 validate 里 addError 存进去的提示
