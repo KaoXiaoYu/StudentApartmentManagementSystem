@@ -1,4 +1,6 @@
 package base;
+import controller.AdminController;
+import model.Admin;
 import model.User;
 
 import com.jfinal.config.JFinalConfig;
@@ -26,7 +28,7 @@ public class BaseConfig extends JFinalConfig {
     public void configRoute(Routes routes) {
         System.out.println("configRoute init!");
         routes.add("/user",UserController.class);
-
+        routes.add("/admin", AdminController.class);
 
     }
 
@@ -54,6 +56,8 @@ public class BaseConfig extends JFinalConfig {
         // 将 ActiveRecord 插件添加到容器中
         plugins.add(arp);
         // (重要) 绑定表名和 Model 类
+        //arp.addMapping("admin_info", Admin.class);
+        //arp.addMapping("violation_info", studentViolation.class);
         arp.addMapping("student_info", User.class);
     }
 

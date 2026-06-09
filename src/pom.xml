@@ -1,35 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <!-- 项目坐标 -->
-    <groupId>Room-534</groupId>  
+    <groupId>Room-534</groupId>
     <artifactId>SAMS</artifactId>
     <version>0.0-SNAPSHOT</version>
-    <packaging>war</packaging> 
+    <packaging>war</packaging>
 
 
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
 
-<!--    <build>-->
-<!--        <resources>-->
-<!--            &lt;!&ndash; 确保 resources 目录下的 properties 文件被打包 &ndash;&gt;-->
-<!--            <resource>-->
-<!--                <directory>src/main/resources</directory>-->
-<!--                <includes>-->
-<!--                    <include>**/*.properties</include>-->
-<!--                    <include>**/*.xml</include>-->
-<!--                </includes>-->
-<!--                <filtering>false</filtering>-->
-<!--            </resource>-->
-<!--        </resources>-->
-<!--    </build>-->
-
     <dependencies>
-    <!--集中声明依赖-->
+        <!--集中声明依赖-->
 
         <dependency>
             <!--servlet依赖-->
