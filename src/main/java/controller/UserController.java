@@ -3,6 +3,7 @@ package controller;
 import com.jfinal.aop.Before;
 import com.jfinal.core.Controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jfinal.plugin.activerecord.Record;
 import exception.BusinessException;
 import model.User;
 
@@ -41,12 +42,12 @@ public class UserController extends Controller {
         try {//正常逻辑
             String jsonBody = getRawData();
             Map params = mapper.readValue(jsonBody, Map.class);
-            User user = User.dao.doLogin(params);
-            if (user != null) {
+            Record rec= User.dao.doLogin(params);
+            if (rec != null) {
                 Map<String,Object> map = new HashMap<>();
                 map.put("code",200);
                 map.put("msg","登录成功");
-                map.put("data",user);
+                map.put("data",rec);
                 renderJson(map);
             } else {
                 Map<String,Object> map = new HashMap<>();

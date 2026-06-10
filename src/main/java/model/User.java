@@ -41,12 +41,12 @@ public class User extends Model<User> {
         user.save();
     }
 
-    public User doLogin(Map map) {
+    public Record doLogin(Map map) {
         String username = map.get("username").toString();
         String password = map.get("password").toString();
         //账号密码长度校验
         if(username.length()!=11){
-            throw new BusinessException(200,"电话号码或学号长度必须为11");
+            throw new BusinessException(400,"电话号码或学号长度必须为11");
         }
         if((password.length()<3)||(password.length()>20)){
             throw new BusinessException(400,"密码长度必须大于三并且小于20");
@@ -65,11 +65,7 @@ public class User extends Model<User> {
         Record rec = recs.get(0);
         String dbPassword = rec.getStr("password");
         if (dbPassword != null && dbPassword.equals(password)) {
-            // 密码匹配成功，将数据库查到的完整信息封装到 User 对象中返回
-            // 直接将 record 的数据映射给 user
-            User user = new User();
-            user.put(rec); // JFinal 提供了 put(Map/Record) 方法，可以直接将查询结果放入 Model
-            return user;
+            return rec;
         }
         return null;
     }

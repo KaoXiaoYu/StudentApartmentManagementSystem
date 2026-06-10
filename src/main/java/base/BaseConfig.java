@@ -59,7 +59,7 @@ public class BaseConfig extends JFinalConfig {
         plugins.add(arp);
         // (重要) 绑定表名和 Model 类
         //arp.addMapping("admin_info", Admin.class);
-        //arp.addMapping("violation_info", studentViolation.class);
+        arp.addMapping("violation_info", StudentViolation.class);
         arp.addMapping("student_info", User.class);
     }
 
