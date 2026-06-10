@@ -1,7 +1,7 @@
 package controller;
 
-import com.jfinal.core.Controller;
-
-public class AdminController extends Controller {
-
+/**
+ * Teacher management endpoints are provided by StudentController.
+ */
+public class AdminController extends StudentController {
 }

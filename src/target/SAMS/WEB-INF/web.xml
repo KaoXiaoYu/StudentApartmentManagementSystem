@@ -5,9 +5,13 @@
          version="3.1">
 
     <display-name>SAMS</display-name>
+
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+
     <filter>
         <filter-name>jfinal</filter-name>
-        <!-- 这里的类名必须是你项目中继承 JFinalConfig 的那个类的完整包名+类名 -->
         <filter-class>com.jfinal.core.JFinalFilter</filter-class>
         <init-param>
             <param-name>configClass</param-name>
@@ -17,6 +21,7 @@
 
     <filter-mapping>
         <filter-name>jfinal</filter-name>
+        <!-- JFinal handles API routes and passes unmatched static files to Tomcat. -->
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 

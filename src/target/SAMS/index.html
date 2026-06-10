@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#123d35">
+    <title>SAMS 学生宿舍管理系统</title>
+    <link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<div id="app" v-cloak>
+    <section v-if="!user" class="login-shell">
+        <div class="login-intro">
+            <div class="brand"><span class="brand-icon">S</span><span>SAMS</span></div>
+            <div class="intro-copy">
+                <span class="eyebrow">STUDENT APARTMENT MANAGEMENT</span>
+                <h1>让宿舍管理<br>更清晰、更高效</h1>
+                <p>统一处理宿舍违规记录、学生申诉、干部授权与学院范围管理。</p>
+            </div>
+            <div class="intro-features">
+                <div><strong>4</strong><span>角色权限</span></div>
+                <div><strong>7 天</strong><span>免密登录</span></div>
+                <div><strong>Excel</strong><span>批量处理</span></div>
+            </div>
+        </div>
+        <div class="login-panel">
+            <form class="login-card" @submit.prevent="login">
+                <div class="mobile-brand"><span class="brand-icon">S</span><span>SAMS</span></div>
+                <span class="eyebrow green">WELCOME BACK</span>
+                <h2>登录系统</h2>
+                <p class="subtle">使用学号、工号或已绑定手机号登录</p>
+                <label><span>账号类型</span>
+                    <select v-model="loginForm.account_type">
+                        <option value="">自动识别</option>
+                        <option value="student">学生账号</option>
+                        <option value="teacher">教师账号</option>
+                    </select>
+                </label>
+                <label><span>账号</span>
+                    <input v-model.trim="loginForm.account" maxlength="11" inputmode="numeric"
+                           autocomplete="username" placeholder="请输入 11 位账号" required>
+                </label>
+                <label><span>密码</span>
+                    <input v-model="loginForm.password" type="password" autocomplete="current-password"
+                           placeholder="请输入密码" required>
+                </label>
+                <label class="remember">
+                    <input v-model="loginForm.remember" type="checkbox"><span>一周内免输入密码</span>
+                </label>
+                <button class="button primary login-button" :disabled="loading">
+                    {{ loading ? '正在登录...' : '登录' }}
+                </button>
+                <p v-if="message" class="alert error">{{ message }}</p>
+                <p class="login-tip">演示账号初始密码：123456</p>
+            </form>
+        </div>
+    </section>
+
+    <div v-else class="app-shell">
+        <aside class="sidebar">
+            <div class="brand sidebar-brand"><span class="brand-icon">S</span><span>SAMS</span></div>
+            <nav>
+                <button :class="{ active: tab === 'violations' }" @click="openTab('violations')"><span class="nav-icon">记</span><span>违规记录</span></button>
+                <button v-if="isManager" :class="{ active: tab === 'entry' }" @click="openTab('entry')"><span class="nav-icon">录</span><span>违规录入</span></button>
+                <button v-if="isManager" :class="{ active: tab === 'appeals' }" @click="openTab('appeals')"><span class="nav-icon">审</span><span>申诉审核</span></button>
+                <button v-if="isTeacher" :class="{ active: tab === 'students' }" @click="openTab('students')"><span class="nav-icon">权</span><span>学生授权</span></button>
+            </nav>
+            <div class="sidebar-user">
+                <div class="avatar">{{ user.name ? user.name.slice(0, 1) : '用' }}</div>
+                <div><strong>{{ user.name }}</strong><span>{{ roleName }}</span></div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div><p class="breadcrumb">宿舍管理 / {{ pageTitle }}</p><h1>{{ pageTitle }}</h1></div>
+                <div class="topbar-actions">
+                    <span class="scope-badge">{{ user.college_id || '全校范围' }}</span>
+                    <button class="button quiet" @click="logout">退出登录</button>
+                </div>
+            </header>
+            <div v-if="message" class="alert" :class="{ error: messageError }">{{ message }}</div>
+
+            <section v-if="tab === 'violations'">
+                <div class="stats-grid">
+                    <article class="stat-card accent"><span>当前记录</span><strong>{{ violations.length }}</strong><small>条违规信息</small></article>
+                    <article class="stat-card"><span>待审核申诉</span><strong>{{ pendingAppealCount }}</strong><small>条待处理</small></article>
+                    <article class="stat-card"><span>管理范围</span><strong class="text-stat">{{ scopeName }}</strong><small>{{ roleName }}</small></article>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div><h2>违规记录</h2><p>查看权限范围内的宿舍违规情况</p></div>
+                        <div class="filters" v-if="isManager">
+                            <select v-if="isSchoolTeacher" v-model="filters.college_id">
+                                <option value="">全部教学院</option>
+                                <option v-for="item in colleges" :key="item.college_id" :value="item.college_id">{{ item.college_name }}</option>
+                            </select>
+                            <input v-model.trim="filters.building_no" maxlength="2" placeholder="楼栋号">
+                            <input v-model.trim="filters.room_no" maxlength="3" placeholder="房间号">
+                            <button class="button primary small" @click="loadViolations">查询</button>
+                        </div>
+                        <button v-else class="button secondary small" @click="loadViolations">刷新</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>宿舍</th><th>违规类型</th><th>情况说明</th><th>发生时间</th><th>申诉状态</th><th>操作</th></tr></thead>
+                            <tbody>
+                            <tr v-for="item in violations" :key="item.violation_id">
+                                <td><strong>{{ item.building_no }}-{{ item.room_no }}</strong><small>{{ item.college_name }}</small></td>
+                                <td>{{ item.violation_type }}</td>
+                                <td class="description-cell">{{ item.description }}</td>
+                                <td>{{ formatDate(item.occurred_at) }}</td>
+                                <td><span class="status" :class="item.appeal_status || 'none'">{{ appealStatus(item.appeal_status) }}</span></td>
+                                <td><button v-if="isBasicStudent && !item.appeal_status" class="text-button" @click="startAppeal(item)">提交申诉</button><span v-else class="subtle">-</span></td>
+                            </tr>
+                            <tr v-if="!violations.length"><td colspan="6"><div class="empty-state"><strong>暂无记录</strong><span>当前范围内没有宿舍违规信息</span></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section v-if="tab === 'entry' && isManager" class="two-column">
+                <div class="card">
+                    <div class="card-head"><div><h2>在线录入</h2><p>填写一条新的宿舍违规记录</p></div></div>
+                    <form class="form-grid" @submit.prevent="addViolation">
+                        <label><span>教学院</span><select v-model="violationForm.college_id" required><option v-for="item in colleges" :key="item.college_id" :value="item.college_id">{{ item.college_name }}</option></select></label>
+                        <label><span>违规类型</span><input v-model.trim="violationForm.violation_type" placeholder="例如：卫生不合格" required></label>
+                        <label><span>楼栋号</span><input v-model.trim="violationForm.building_no" maxlength="2" placeholder="例如：01" required></label>
+                        <label><span>房间号</span><input v-model.trim="violationForm.room_no" maxlength="3" placeholder="例如：101" required></label>
+                        <label class="full"><span>发生时间</span><input v-model="violationForm.occurred_at" type="datetime-local"></label>
+                        <label class="full"><span>情况说明</span><textarea v-model.trim="violationForm.description" placeholder="请简要描述违规情况" required></textarea></label>
+                        <button class="button primary full">提交记录</button>
+                    </form>
+                </div>
+                <div class="card batch-card">
+                    <div class="card-head"><div><h2>批量处理</h2><p>通过 Excel 快速录入和导出</p></div></div>
+                    <div class="upload-box">
+                        <span class="upload-icon">XLSX</span>
+                        <strong>{{ excelFile ? excelFile.name : '选择 Excel 文件' }}</strong>
+                        <p>列顺序：学院、楼栋、房间、类型、说明、发生时间</p>
+                        <label class="button secondary file-button">浏览文件<input type="file" accept=".xlsx,.xls" @change="excelFile = $event.target.files[0]"></label>
+                    </div>
+                    <button class="button primary block" @click="importExcel">上传并导入</button>
+                    <button class="button quiet block" @click="exportWeek">导出本周汇总表</button>
+                </div>
+            </section>
+
+            <section v-if="tab === 'appeals' && isManager" class="card">
+                <div class="card-head"><div><h2>申诉审核</h2><p>处理权限范围内的学生申诉</p></div></div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>学生</th><th>宿舍</th><th>违规事项</th><th>申诉理由</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody>
+                    <tr v-for="item in appeals" :key="item.appeal_id">
+                        <td><strong>{{ item.student_name }}</strong><small>{{ item.student_id }}</small></td>
+                        <td>{{ item.building_no }}-{{ item.room_no }}</td>
+                        <td>{{ item.violation_type }}<small>{{ item.description }}</small></td>
+                        <td class="description-cell">{{ item.reason }}</td>
+                        <td><span class="status" :class="item.status">{{ appealStatus(item.status) }}</span></td>
+                        <td class="actions"><button v-if="item.status === 'pending'" class="text-button" @click="audit(item, 'approved')">通过</button><button v-if="item.status === 'pending'" class="text-button danger" @click="audit(item, 'rejected')">驳回</button><span v-else class="subtle">{{ item.audit_reply || '-' }}</span></td>
+                    </tr>
+                    <tr v-if="!appeals.length"><td colspan="6"><div class="empty-state"><strong>暂无申诉</strong><span>当前没有需要处理的申诉记录</span></div></td></tr>
+                    </tbody>
+                </table></div>
+            </section>
+
+            <section v-if="tab === 'students' && isTeacher" class="card">
+                <div class="card-head"><div><h2>学生授权</h2><p>授予或撤销学生干部管理权限</p></div></div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>学生</th><th>手机号</th><th>教学院</th><th>宿舍</th><th>当前权限</th><th>操作</th></tr></thead>
+                    <tbody>
+                    <tr v-for="item in students" :key="item.student_id">
+                        <td><strong>{{ item.name }}</strong><small>{{ item.student_id }}</small></td><td>{{ item.phone_number || '-' }}</td><td>{{ item.college_id }}</td><td>{{ item.building_no }}-{{ item.room_no }}</td>
+                        <td><span class="status" :class="item.role === 'cadre' ? 'approved' : 'none'">{{ item.role === 'cadre' ? '学生干部' : '基础学生' }}</span></td>
+                        <td><button class="text-button" @click="authorize(item)">{{ item.role === 'cadre' ? '撤销权限' : '授权为干部' }}</button></td>
+                    </tr>
+                    <tr v-if="!students.length"><td colspan="6"><div class="empty-state"><strong>暂无学生</strong><span>当前范围内没有学生账号</span></div></td></tr>
+                    </tbody>
+                </table></div>
+            </section>
+        </main>
+    </div>
+
+    <div v-if="appealTarget" class="modal-mask" @click.self="appealTarget = null">
+        <form class="modal" @submit.prevent="submitAppeal">
+            <span class="eyebrow green">APPEAL</span><h2>提交违规申诉</h2>
+            <p class="subtle">{{ appealTarget.violation_type }}：{{ appealTarget.description }}</p>
+            <label><span>申诉理由</span><textarea v-model.trim="appealReason" minlength="5" maxlength="1000" placeholder="请说明对本条违规记录存在异议的原因" required></textarea></label>
+            <div class="modal-actions"><button type="button" class="button quiet" @click="appealTarget = null">取消</button><button class="button primary">提交申诉</button></div>
+        </form>
+    </div>
+</div>
+<script src="assets/vue.global.prod.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

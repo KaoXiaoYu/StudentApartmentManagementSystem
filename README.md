@@ -1,95 +1,45 @@
-# StudentApartmentManagementSystem
-just for better apartment management
+# SAMS 学生宿舍管理系统
 
+课程设计项目，后端使用 JFinal 5，前端使用 Vue 3，数据库使用 MySQL。
 
+## 已实现功能
 
+- 学生可使用 11 位学号或绑定手机号登录。
+- 教师可使用 11 位工号或绑定手机号登录。
+- “一周免输入密码”使用随机 Cookie 令牌，服务端仅保存令牌摘要。
+- 基础学生查询本人宿舍违规记录并提交申诉。
+- 学生干部在线录入或通过 Excel 批量导入违规记录、审核申诉、导出本周汇总。
+- 学院教师可管理本教学院数据，并授权或撤销学生干部权限。
+- 校级教师可管理全部教学院。
+- 宿舍采用 2 位楼栋号和 3 位房间号，并关联所属教学院。
 
-## 项目结构
-***(当前版本未归档)***\
-项目根目录\
-├── src (Java源代码)\
-│&emsp;└── main\
-│&emsp;│&emsp;&emsp;└── java\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;├── controller\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;├── exception\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;├── intercept\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;├── model\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;└── service\
-│&emsp;└── resources\
-└──web\
-&emsp;&emsp;└── WEB-INF
+## 初始化
 
-## 接口
+1. 在 MySQL 执行 [`database/schema.sql`](database/schema.sql)。
+2. 修改 [`src/main/resources/database.properties`](src/main/resources/database.properties) 中的连接信息。
+3. 在项目根目录执行：
 
-### *用户注册*
-    POST /user/register
+```bash
+mvn -f src/pom.xml clean package
+```
 
-JSON格式
+4. 将 `src/target/SAMS.war` 部署到 Tomcat。
 
-    {
-    "phone_number": "phone_number",
-    "student_id": "student_id"
-    "password": "114514",
-    "unit_id": "unit_id",
-    "room_id": "room_id"
-    }
+## 演示账号
 
+所有演示账号初始密码均为 `123456`，首次登录后会自动升级为 PBKDF2 密码摘要。
 
-### *用户登录*
-    POST /user/login
+| 角色 | 账号 |
+| --- | --- |
+| 基础学生 | `20260000001` |
+| 学生干部 | `20260000002` |
+| 学院教师 | `90000000001` |
+| 校级教师 | `90000000002` |
 
-JSON格式
+## Excel 导入格式
 
-    {
-    "username": "Username",
-    "is_phone_number": "false",
-    "password": "Password",
-    "remember":"false"
-    }
+第一行为表头，从第二行开始按以下列顺序读取：
 
-### *用户登出*
-    Get /user/logout
+`教学院编号 | 楼栋号 | 房间号 | 违规类型 | 情况说明 | 发生时间`
 
-### *违规查询*
-    POST /violation/recentList
-
-JSON格式
-
-    {
-    "unit_id": "your_unit",
-    "room_id": "your_room",
-    "time": "your_time"
-    }
-### *违规申诉*
-    POST /violation/appeal
-
-JSON格式
-
-    {
-    "violation_id": "violation_id",
-    "appeal_content": "我说我要申诉，你尔朵龙吗",
-    "evidence_url": [
-    "url.com"
-    ]
-    }
-
-
-## *数据库*
-### *student_info*
-student_id char(11) key\
-phone_number char(11)\
-unit_id char(2)\
-room_id char(3)\
-permission int
-
-### *violation_info*
-violation_id char(8)\
-unit_id char(2)\
-room_id char(3)\
-violation_code char(2)\
-date_time datetime\
-handle_status varchar(20)\
-appeal_status varchar(20)\
-appeal_content text\
-audit_time datetime\
-audit_reply text\
+发生时间格式为 `yyyy-MM-dd HH:mm`。
