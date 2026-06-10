@@ -10,10 +10,12 @@ just for better apartment management
 │&emsp;└── main\
 │&emsp;│&emsp;&emsp;└── java\
 │&emsp;│&emsp;&emsp;&emsp;&emsp;├── controller\
-│&emsp;│&emsp;&emsp;&emsp;&emsp;├── interface\
+│&emsp;│&emsp;&emsp;&emsp;&emsp;├── exception\
+│&emsp;│&emsp;&emsp;&emsp;&emsp;├── intercept\
+│&emsp;│&emsp;&emsp;&emsp;&emsp;├── model\
 │&emsp;│&emsp;&emsp;&emsp;&emsp;└── service\
 │&emsp;└── resources\
-└──webapp\
+└──web\
 &emsp;&emsp;└── WEB-INF
 
 ## 接口
@@ -44,3 +46,15 @@ JSON格式
         "remember":"false"
         }
 
+### *违规查询*
+    POST /violation/recentList
+
+JSON格式
+
+        {
+        "time": "your_time"
+        }
+
+
+
+## *数据库*

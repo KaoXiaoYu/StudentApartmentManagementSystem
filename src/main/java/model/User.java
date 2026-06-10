@@ -15,11 +15,11 @@ public class User extends Model<User> {
     public static final User dao = new User();
 
     public void doRegister(Map map){
-        String phone_number = (String) map.get("phone_number");
-        String student_id = (String) map.get("student_id");
-        String password = (String) map.get("password");
-        String unit_id = (String) map.get("unit_id");
-        String room_id = (String) map.get("room_id");
+        String phone_number = map.get("phone_number").toString();
+        String student_id = map.get("student_id").toString();
+        String password = map.get("password").toString();
+        String unit_id = map.get("unit_id").toString();
+        String room_id = map.get("room_id").toString();
         User user = new User();
         String sql = "select * from student_info where ";
         // 注册检测
@@ -29,7 +29,7 @@ public class User extends Model<User> {
         }
         List<Record> rsi= Db.find(sql+"student_id = ? ",student_id);
         if (rsi != null && !rsi.isEmpty() && rsi.get(0).getInt("c") > 0) {
-            throw new BusinessException(400,"学号注册"); // 标记：学号已存在
+            throw new BusinessException(400,"学号已经注册"); // 标记：学号已存在
         }
 
         user.set("phone_number", phone_number);
@@ -42,8 +42,8 @@ public class User extends Model<User> {
     }
 
     public User doLogin(Map map) {
-        String username = (String) map.get("username");
-        String password = (String) map.get("password");
+        String username = map.get("username").toString();
+        String password = map.get("password").toString();
         //账号密码长度校验
         if(username.length()!=11){
             throw new BusinessException(200,"电话号码或学号长度必须为11");
@@ -52,7 +52,7 @@ public class User extends Model<User> {
             throw new BusinessException(400,"密码长度必须大于三并且小于20");
         }
 
-        boolean isPhoneNumber = ((String) map.get("is_phone_number")).equals("true");
+        boolean isPhoneNumber = (map.get("is_phone_number").toString()).equals("true");
         String sql = "select * from student_info where";
         if(isPhoneNumber)sql+=" phone_number = ? ";
         else sql+=" student_id = ? ";

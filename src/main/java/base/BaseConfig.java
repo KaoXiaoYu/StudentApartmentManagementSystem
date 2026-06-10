@@ -1,6 +1,8 @@
 package base;
 import controller.AdminController;
+import controller.StudentViolationController;
 import model.Admin;
+import model.StudentViolation;
 import model.User;
 
 import com.jfinal.config.JFinalConfig;
@@ -29,7 +31,7 @@ public class BaseConfig extends JFinalConfig {
         System.out.println("configRoute init!");
         routes.add("/user",UserController.class);
         routes.add("/admin", AdminController.class);
-
+        routes.add("/violation", StudentViolationController.class);
     }
 
 

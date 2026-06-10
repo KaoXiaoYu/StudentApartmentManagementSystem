@@ -31,7 +31,7 @@ public class UserController extends Controller {
             e.fillInStackTrace();
             Map<String,Object> map = new HashMap<>();
             map.put("code", 400);
-            map.put("msg", "格式错误");
+            map.put("msg", "JSON格式错误");
             renderJson(map);
         }
     }
@@ -63,7 +63,7 @@ public class UserController extends Controller {
             e.fillInStackTrace();
             Map<String,Object> map = new HashMap<>();
             map.put("code", 400);
-            map.put("msg", "格式错误");
+            map.put("msg", "JSON格式错误");
             renderJson(map);
         }
     }
@@ -71,14 +71,5 @@ public class UserController extends Controller {
 
     }
 
-    public void edit() {
-
-    }
-    public void update() {
-
-    }
-    public void delete() {
-
-    }
 
 }
