@@ -1,7 +1,13 @@
 package service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jfinal.core.Controller;
+import com.jfinal.kit.JsonKit;
 import exception.BusinessException;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public final class AccessService {
     private AccessService() {
@@ -28,8 +34,12 @@ public final class AccessService {
     }
 
     public static void checkCollege(Controller controller, String collegeId) {
+        String rawData = controller.getRawData();
+        JSONObject jo = JSONObject.parseObject(rawData);
+        System.out.println(jo.get("college_id"));
+        System.out.println(collegeId);
         if (!isSchoolTeacher(controller)
-                && !String.valueOf(controller.getSessionAttr("collegeId")).equals(collegeId)) {
+                && !String.valueOf(jo.get("college_id")).equals(collegeId) ) {
             throw new BusinessException(403, "无权管理其他教学院的宿舍");
         }
     }
