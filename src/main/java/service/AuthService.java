@@ -11,7 +11,9 @@ import java.security.MessageDigest;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,13 +36,14 @@ public class AuthService {
         Record user = null;
         if (!"teacher".equals(accountType)) {
             user = Db.findFirst("select student_id user_id, student_id, phone_number, name, role, "
-                            + "college_id, building_no, room_no, password_hash, 'student' user_type "
+                            + "college_id, major_code, study_years, class_code, serial_no, "
+                            + "building_no, room_no, first_login_required, password_hash, 'student' user_type "
                             + "from student_info where enabled = 1 and (student_id = ? or phone_number = ?)",
                     account, account);
         }
         if (user == null && !"student".equals(accountType)) {
             user = Db.findFirst("select teacher_id user_id, teacher_id, phone_number, name, role, "
-                            + "college_id, password_hash, 'teacher' user_type "
+                            + "college_id, class_code, password_hash, 'teacher' user_type "
                             + "from teacher_info where enabled = 1 and (teacher_id = ? or phone_number = ?)",
                     account, account);
         }
@@ -55,6 +58,7 @@ public class AuthService {
                     PasswordService.hash(password), user.getStr("user_id"));
         }
 
+        user.set("permissions", loadPermissions(user.getStr("user_type"), user.getStr("user_id")));
         putSession(controller, user);
         revoke(controller);
         if (Boolean.TRUE.equals(params.get("remember"))) {
@@ -78,17 +82,19 @@ public class AuthService {
         Record user;
         if ("student".equals(userType)) {
             user = Db.findFirst("select student_id user_id, student_id, phone_number, name, role, college_id, "
-                            + "building_no, room_no, 'student' user_type from student_info "
+                            + "major_code, study_years, class_code, serial_no, building_no, room_no, "
+                            + "first_login_required, 'student' user_type from student_info "
                             + "where enabled = 1 and student_id = ?", token.getStr("user_id"));
         } else {
             user = Db.findFirst("select teacher_id user_id, teacher_id, phone_number, name, role, college_id, "
-                            + "'teacher' user_type from teacher_info where enabled = 1 and teacher_id = ?",
+                            + "class_code, 'teacher' user_type from teacher_info where enabled = 1 and teacher_id = ?",
                     token.getStr("user_id"));
         }
         if (user == null) {
             revoke(controller);
             return false;
         }
+        user.set("permissions", loadPermissions(userType, user.getStr("user_id")));
         putSession(controller, user);
         return true;
     }
@@ -102,10 +108,13 @@ public class AuthService {
                 .set("user_type", controller.getSessionAttr("userType"))
                 .set("name", controller.getSessionAttr("name"))
                 .set("role", controller.getSessionAttr("role"))
-                .set("college_id", controller.getSessionAttr("collegeId"));
+                .set("college_id", controller.getSessionAttr("collegeId"))
+                .set("class_code", controller.getSessionAttr("classCode"))
+                .set("permissions", controller.getSessionAttr("permissions"));
         if ("student".equals(controller.getSessionAttr("userType"))) {
             result.set("building_no", controller.getSessionAttr("buildingNo"));
             result.set("room_no", controller.getSessionAttr("roomNo"));
+            result.set("first_login_required", controller.getSessionAttr("firstLoginRequired"));
         }
         return result;
     }
@@ -115,6 +124,17 @@ public class AuthService {
         if (controller.getRequest().getSession(false) != null) {
             controller.getRequest().getSession(false).invalidate();
         }
+    }
+
+    private List<String> loadPermissions(String userType, String userId) {
+        String sql = "student".equals(userType)
+                ? "select permission_code from student_permission where student_id = ?"
+                : "select permission_code from teacher_permission where teacher_id = ?";
+        List<String> permissions = new ArrayList<>();
+        for (Record record : Db.find(sql, userId)) {
+            permissions.add(record.getStr("permission_code"));
+        }
+        return permissions;
     }
 
     private void issueRememberToken(Controller controller, Record user) {
@@ -158,8 +178,11 @@ public class AuthService {
         controller.setSessionAttr("name", user.getStr("name"));
         controller.setSessionAttr("role", user.getStr("role"));
         controller.setSessionAttr("collegeId", user.getStr("college_id"));
+        controller.setSessionAttr("classCode", user.getStr("class_code"));
         controller.setSessionAttr("buildingNo", user.getStr("building_no"));
         controller.setSessionAttr("roomNo", user.getStr("room_no"));
+        controller.setSessionAttr("firstLoginRequired", user.get("first_login_required"));
+        controller.setSessionAttr("permissions", user.get("permissions"));
     }
 
     private Record publicUser(Record user) {

@@ -14,12 +14,12 @@
             <div class="brand"><span class="brand-icon">S</span><span>SAMS</span></div>
             <div class="intro-copy">
                 <span class="eyebrow">STUDENT APARTMENT MANAGEMENT</span>
-                <h1>让宿舍管理<br>更清晰、更高效</h1>
-                <p>统一处理宿舍违规记录、学生申诉、干部授权与学院范围管理。</p>
+                <h1>宿舍管理<br>更清晰、更灵活</h1>
+                <p>以模块化权限处理违规记录、申诉审核、学生授权和宿舍成员维护。</p>
             </div>
             <div class="intro-features">
-                <div><strong>4</strong><span>角色权限</span></div>
-                <div><strong>7 天</strong><span>免密登录</span></div>
+                <div><strong>13</strong><span>模块权限</span></div>
+                <div><strong>11 位</strong><span>学号解析</span></div>
                 <div><strong>Excel</strong><span>批量处理</span></div>
             </div>
         </div>
@@ -45,25 +45,41 @@
                            placeholder="请输入密码" required>
                 </label>
                 <label class="remember">
-                    <input v-model="loginForm.remember" type="checkbox"><span>一周内免输入密码</span>
+                    <input v-model="loginForm.remember" type="checkbox"><span>一周内免登录</span>
                 </label>
                 <button class="button primary login-button" :disabled="loading">
                     {{ loading ? '正在登录...' : '登录' }}
                 </button>
                 <p v-if="message" class="alert error">{{ message }}</p>
-                <p class="login-tip">演示账号初始密码：123456</p>
+                <p class="login-tip">学生账号由教师导入，初始密码 123456</p>
             </form>
         </div>
     </section>
+
+    <div v-else-if="mustBindProfile" class="login-panel profile-only">
+        <form class="login-card" @submit.prevent="bindProfile">
+            <div class="mobile-brand force-show"><span class="brand-icon">S</span><span>SAMS</span></div>
+            <span class="eyebrow green">FIRST LOGIN</span>
+            <h2>绑定个人信息</h2>
+            <p class="subtle">首次登录需要绑定手机号和当前宿舍，之后可用手机号登录。</p>
+            <label><span>手机号</span><input v-model.trim="bindForm.phone_number" maxlength="11" inputmode="numeric" required></label>
+            <label><span>楼栋号</span><input v-model.trim="bindForm.building_no" maxlength="2" placeholder="例如 01" required></label>
+            <label><span>房间号</span><input v-model.trim="bindForm.room_no" maxlength="3" placeholder="例如 101" required></label>
+            <button class="button primary login-button">完成绑定</button>
+            <button type="button" class="button quiet login-button" @click="logout">退出登录</button>
+            <p v-if="message" class="alert" :class="{ error: messageError }">{{ message }}</p>
+        </form>
+    </div>
 
     <div v-else class="app-shell">
         <aside class="sidebar">
             <div class="brand sidebar-brand"><span class="brand-icon">S</span><span>SAMS</span></div>
             <nav>
                 <button :class="{ active: tab === 'violations' }" @click="openTab('violations')"><span class="nav-icon">记</span><span>违规记录</span></button>
-                <button v-if="isManager" :class="{ active: tab === 'entry' }" @click="openTab('entry')"><span class="nav-icon">录</span><span>违规录入</span></button>
-                <button v-if="isManager" :class="{ active: tab === 'appeals' }" @click="openTab('appeals')"><span class="nav-icon">审</span><span>申诉审核</span></button>
-                <button v-if="isTeacher" :class="{ active: tab === 'students' }" @click="openTab('students')"><span class="nav-icon">权</span><span>学生授权</span></button>
+                <button v-if="canSubmit" :class="{ active: tab === 'entry' }" @click="openTab('entry')"><span class="nav-icon">录</span><span>违规录入</span></button>
+                <button v-if="canAudit" :class="{ active: tab === 'appeals' }" @click="openTab('appeals')"><span class="nav-icon">审</span><span>申诉审核</span></button>
+                <button v-if="canManageStudents" :class="{ active: tab === 'students' }" @click="openTab('students')"><span class="nav-icon">舍</span><span>学生与宿舍</span></button>
+                <button v-if="canGrant" :class="{ active: tab === 'permissions' }" @click="openTab('permissions')"><span class="nav-icon">权</span><span>学生授权</span></button>
             </nav>
             <div class="sidebar-user">
                 <div class="avatar">{{ user.name ? user.name.slice(0, 1) : '用' }}</div>
@@ -75,7 +91,7 @@
             <header class="topbar">
                 <div><p class="breadcrumb">宿舍管理 / {{ pageTitle }}</p><h1>{{ pageTitle }}</h1></div>
                 <div class="topbar-actions">
-                    <span class="scope-badge">{{ user.college_id || '全校范围' }}</span>
+                    <span class="scope-badge">{{ scopeName }}</span>
                     <button class="button quiet" @click="logout">退出登录</button>
                 </div>
             </header>
@@ -84,22 +100,21 @@
             <section v-if="tab === 'violations'">
                 <div class="stats-grid">
                     <article class="stat-card accent"><span>当前记录</span><strong>{{ violations.length }}</strong><small>条违规信息</small></article>
-                    <article class="stat-card"><span>待审核申诉</span><strong>{{ pendingAppealCount }}</strong><small>条待处理</small></article>
-                    <article class="stat-card"><span>管理范围</span><strong class="text-stat">{{ scopeName }}</strong><small>{{ roleName }}</small></article>
+                    <article class="stat-card"><span>待处理申诉</span><strong>{{ pendingAppealCount }}</strong><small>条待处理</small></article>
+                    <article class="stat-card"><span>查看范围</span><strong class="text-stat">{{ scopeName }}</strong><small>{{ roleName }}</small></article>
                 </div>
                 <div class="card">
                     <div class="card-head">
                         <div><h2>违规记录</h2><p>查看权限范围内的宿舍违规情况</p></div>
-                        <div class="filters" v-if="isManager">
-                            <select v-if="isSchoolTeacher" v-model="filters.college_id">
-                                <option value="">全部教学院</option>
+                        <div class="filters">
+                            <select v-if="canViewSchool" v-model="filters.college_id">
+                                <option value="">全部学院</option>
                                 <option v-for="item in colleges" :key="item.college_id" :value="item.college_id">{{ item.college_name }}</option>
                             </select>
                             <input v-model.trim="filters.building_no" maxlength="2" placeholder="楼栋号">
                             <input v-model.trim="filters.room_no" maxlength="3" placeholder="房间号">
                             <button class="button primary small" @click="loadViolations">查询</button>
                         </div>
-                        <button v-else class="button secondary small" @click="loadViolations">刷新</button>
                     </div>
                     <div class="table-wrap">
                         <table>
@@ -111,7 +126,7 @@
                                 <td class="description-cell">{{ item.description }}</td>
                                 <td>{{ formatDate(item.occurred_at) }}</td>
                                 <td><span class="status" :class="item.appeal_status || 'none'">{{ appealStatus(item.appeal_status) }}</span></td>
-                                <td><button v-if="isBasicStudent && !item.appeal_status" class="text-button" @click="startAppeal(item)">提交申诉</button><span v-else class="subtle">-</span></td>
+                                <td><button v-if="isStudent && !item.appeal_status" class="text-button" @click="startAppeal(item)">提交申诉</button><span v-else class="subtle">-</span></td>
                             </tr>
                             <tr v-if="!violations.length"><td colspan="6"><div class="empty-state"><strong>暂无记录</strong><span>当前范围内没有宿舍违规信息</span></div></td></tr>
                             </tbody>
@@ -120,14 +135,14 @@
                 </div>
             </section>
 
-            <section v-if="tab === 'entry' && isManager" class="two-column">
+            <section v-if="tab === 'entry' && canSubmit" class="two-column">
                 <div class="card">
                     <div class="card-head"><div><h2>在线录入</h2><p>填写一条新的宿舍违规记录</p></div></div>
                     <form class="form-grid" @submit.prevent="addViolation">
-                        <label><span>教学院</span><select v-model="violationForm.college_id" required><option v-for="item in colleges" :key="item.college_id" :value="item.college_id">{{ item.college_name }}</option></select></label>
+                        <label><span>教学学院</span><select v-model="violationForm.college_id" required><option v-for="item in colleges" :key="item.college_id" :value="item.college_id">{{ item.college_name }}</option></select></label>
                         <label><span>违规类型</span><input v-model.trim="violationForm.violation_type" placeholder="例如：卫生不合格" required></label>
-                        <label><span>楼栋号</span><input v-model.trim="violationForm.building_no" maxlength="2" placeholder="例如：01" required></label>
-                        <label><span>房间号</span><input v-model.trim="violationForm.room_no" maxlength="3" placeholder="例如：101" required></label>
+                        <label><span>楼栋号</span><input v-model.trim="violationForm.building_no" maxlength="2" placeholder="例如 01" required></label>
+                        <label><span>房间号</span><input v-model.trim="violationForm.room_no" maxlength="3" placeholder="例如 101" required></label>
                         <label class="full"><span>发生时间</span><input v-model="violationForm.occurred_at" type="datetime-local"></label>
                         <label class="full"><span>情况说明</span><textarea v-model.trim="violationForm.description" placeholder="请简要描述违规情况" required></textarea></label>
                         <button class="button primary full">提交记录</button>
@@ -146,7 +161,7 @@
                 </div>
             </section>
 
-            <section v-if="tab === 'appeals' && isManager" class="card">
+            <section v-if="tab === 'appeals' && canAudit" class="card">
                 <div class="card-head"><div><h2>申诉审核</h2><p>处理权限范围内的学生申诉</p></div></div>
                 <div class="table-wrap"><table>
                     <thead><tr><th>学生</th><th>宿舍</th><th>违规事项</th><th>申诉理由</th><th>状态</th><th>操作</th></tr></thead>
@@ -164,17 +179,47 @@
                 </table></div>
             </section>
 
-            <section v-if="tab === 'students' && isTeacher" class="card">
-                <div class="card-head"><div><h2>学生授权</h2><p>授予或撤销学生干部管理权限</p></div></div>
+            <section v-if="tab === 'students' && canManageStudents" class="two-column">
+                <div class="card">
+                    <div class="card-head"><div><h2>学生与宿舍</h2><p>查看自己权限范围内的学生，并调整宿舍成员情况</p></div></div>
+                    <div class="table-wrap"><table>
+                        <thead><tr><th>学生</th><th>手机</th><th>学院/班级</th><th>当前宿舍</th><th>调整宿舍</th></tr></thead>
+                        <tbody>
+                        <tr v-for="item in students" :key="item.student_id">
+                            <td><strong>{{ item.name }}</strong><small>{{ item.student_id }}</small></td>
+                            <td>{{ item.phone_number || '-' }}</td>
+                            <td>{{ item.college_id }} / {{ item.class_code }}</td>
+                            <td>{{ item.building_no || '--' }}-{{ item.room_no || '---' }}</td>
+                            <td class="inline-edit"><input v-model.trim="item.edit_building_no" maxlength="2"><input v-model.trim="item.edit_room_no" maxlength="3"><button class="text-button" @click="saveDorm(item)">保存</button></td>
+                        </tr>
+                        <tr v-if="!students.length"><td colspan="5"><div class="empty-state"><strong>暂无学生</strong><span>当前范围内没有学生账号</span></div></td></tr>
+                        </tbody>
+                    </table></div>
+                </div>
+                <div class="card batch-card">
+                    <div class="card-head"><div><h2>导入学生</h2><p>每行填写：学号,姓名；初始密码为 123456</p></div></div>
+                    <textarea v-model.trim="importText" placeholder="26050540103,张三&#10;26050540104,李四"></textarea>
+                    <button class="button primary block" @click="importStudents">导入学生账号</button>
+                </div>
+            </section>
+
+            <section v-if="tab === 'permissions' && canGrant" class="card">
+                <div class="card-head"><div><h2>学生授权</h2><p>为学生勾选模块化权限，保存后立即生效</p></div></div>
                 <div class="table-wrap"><table>
-                    <thead><tr><th>学生</th><th>手机号</th><th>教学院</th><th>宿舍</th><th>当前权限</th><th>操作</th></tr></thead>
+                    <thead><tr><th>学生</th><th>学院/宿舍</th><th>可授予权限</th><th>操作</th></tr></thead>
                     <tbody>
                     <tr v-for="item in students" :key="item.student_id">
-                        <td><strong>{{ item.name }}</strong><small>{{ item.student_id }}</small></td><td>{{ item.phone_number || '-' }}</td><td>{{ item.college_id }}</td><td>{{ item.building_no }}-{{ item.room_no }}</td>
-                        <td><span class="status" :class="item.role === 'cadre' ? 'approved' : 'none'">{{ item.role === 'cadre' ? '学生干部' : '基础学生' }}</span></td>
-                        <td><button class="text-button" @click="authorize(item)">{{ item.role === 'cadre' ? '撤销权限' : '授权为干部' }}</button></td>
+                        <td><strong>{{ item.name }}</strong><small>{{ item.student_id }}</small></td>
+                        <td>{{ item.college_id }} / {{ item.building_no || '--' }}-{{ item.room_no || '---' }}</td>
+                        <td class="permission-list">
+                            <label v-for="option in permissionOptions" :key="option.permission_code" class="check-row">
+                                <input type="checkbox" :value="option.permission_code" v-model="item.permissionList">
+                                <span>{{ option.permission_name }}</span>
+                            </label>
+                        </td>
+                        <td><button class="text-button" @click="savePermissions(item)">保存权限</button></td>
                     </tr>
-                    <tr v-if="!students.length"><td colspan="6"><div class="empty-state"><strong>暂无学生</strong><span>当前范围内没有学生账号</span></div></td></tr>
+                    <tr v-if="!students.length"><td colspan="4"><div class="empty-state"><strong>暂无学生</strong><span>当前范围内没有可授权学生</span></div></td></tr>
                     </tbody>
                 </table></div>
             </section>

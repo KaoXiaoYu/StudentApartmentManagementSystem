@@ -14,15 +14,19 @@ createApp({
             messageError: false,
             messageTimer: null,
             loginForm: { account: "", password: "", account_type: "", remember: true },
+            bindForm: { phone_number: "", building_no: "", room_no: "" },
             filters: { college_id: "", building_no: "", room_no: "" },
             violationForm: {
                 college_id: "", building_no: "", room_no: "",
                 violation_type: "", description: "", occurred_at: ""
             },
+            importText: "",
             violations: [],
             appeals: [],
             students: [],
+            permissionOptions: [],
             colleges: [],
+            dorms: [],
             excelFile: null,
             appealTarget: null,
             appealReason: ""
@@ -32,41 +36,62 @@ createApp({
         isTeacher() {
             return this.user?.user_type === "teacher";
         },
-        isSchoolTeacher() {
-            return this.user?.role === "school_teacher";
+        isStudent() {
+            return this.user?.user_type === "student";
         },
-        isManager() {
-            return this.isTeacher || this.user?.role === "cadre";
+        permissions() {
+            return new Set(this.user?.permissions || []);
         },
-        isBasicStudent() {
-            return this.user?.user_type === "student" && this.user?.role === "student";
+        mustBindProfile() {
+            return this.isStudent && Number(this.user?.first_login_required) === 1;
+        },
+        canViewSchool() {
+            return this.has("STUDENT_VIEW_SCHOOL") || this.has("STUDENT_AUDIT_SCHOOL")
+                || this.has("TEACHER_VIEW_SCHOOL") || this.has("TEACHER_AUDIT_SCHOOL")
+                || this.has("TEACHER_GRANT_STUDENT_SCHOOL");
+        },
+        canSubmit() {
+            return this.has("STUDENT_SUBMIT_COLLEGE") || this.has("STUDENT_SUBMIT_SCHOOL")
+                || this.has("TEACHER_VIEW_COLLEGE") || this.has("TEACHER_VIEW_SCHOOL");
+        },
+        canAudit() {
+            return this.has("STUDENT_AUDIT_COLLEGE") || this.has("STUDENT_AUDIT_SCHOOL")
+                || this.has("TEACHER_AUDIT_COLLEGE") || this.has("TEACHER_AUDIT_SCHOOL");
+        },
+        canGrant() {
+            return this.has("TEACHER_GRANT_STUDENT_COLLEGE") || this.has("TEACHER_GRANT_STUDENT_SCHOOL");
+        },
+        canManageStudents() {
+            return this.isTeacher;
         },
         roleName() {
-            return {
-                student: "基础学生",
-                cadre: "学生干部",
-                college_teacher: "学院教师",
-                school_teacher: "校级教师"
-            }[this.user?.role] || "";
+            if (this.isStudent) return this.permissions.size ? "学生扩展权限" : "普通学生";
+            if (this.isTeacher) return this.permissions.size ? "教师扩展权限" : "班级教师";
+            return "";
         },
         pageTitle() {
             return {
                 violations: "违规记录",
                 entry: "违规录入",
                 appeals: "申诉审核",
-                students: "学生授权"
+                students: "学生与宿舍",
+                permissions: "学生授权"
             }[this.tab] || "";
         },
         pendingAppealCount() {
-            if (this.isManager) {
+            if (this.canAudit) {
                 return this.appeals.filter(item => item.status === "pending").length;
             }
             return this.violations.filter(item => item.appeal_status === "pending").length;
         },
         scopeName() {
-            if (this.isSchoolTeacher) return "全校";
-            if (this.isBasicStudent) return `${this.user.building_no}-${this.user.room_no}`;
-            return this.user.college_id || "本学院";
+            if (this.canViewSchool) return "全校";
+            if (this.has("STUDENT_VIEW_COLLEGE") || this.has("STUDENT_AUDIT_COLLEGE")
+                || this.has("TEACHER_VIEW_COLLEGE") || this.has("TEACHER_AUDIT_COLLEGE")) {
+                return this.user.college_id || "本学院";
+            }
+            if (this.isTeacher) return `班级 ${this.user.class_code || "-"}`;
+            return `${this.user.building_no || "--"}-${this.user.room_no || "---"}`;
         }
     },
     async mounted() {
@@ -79,6 +104,9 @@ createApp({
         }
     },
     methods: {
+        has(code) {
+            return this.permissions.has(code);
+        },
         async request(url, options = {}) {
             const defaultHeaders = options.body instanceof FormData
                 ? {}
@@ -90,7 +118,7 @@ createApp({
             });
             const contentType = response.headers.get("content-type") || "";
             if (!contentType.includes("application/json")) {
-                throw new Error(response.ok ? "服务器返回格式错误" : `请求失败（${response.status}）`);
+                throw new Error(response.ok ? "服务端返回格式错误" : `请求失败：${response.status}`);
             }
             const result = await response.json();
             if (!response.ok || result.code !== 200) {
@@ -124,8 +152,11 @@ createApp({
         },
         async afterLogin() {
             await this.loadColleges();
+            if (this.mustBindProfile) return;
             await this.loadViolations();
-            if (this.isManager) await this.loadAppeals();
+            if (this.canAudit) await this.loadAppeals();
+            if (this.canManageStudents) await this.loadStudents();
+            if (this.canGrant) await this.loadPermissionOptions();
             this.violationForm.college_id =
                 this.user.college_id || this.colleges[0]?.college_id || "";
         },
@@ -138,15 +169,38 @@ createApp({
                 this.loginForm.password = "";
             }
         },
+        async bindProfile() {
+            try {
+                await this.request("/student/bindProfile", {
+                    method: "POST",
+                    body: JSON.stringify(this.bindForm)
+                });
+                const result = await this.request("/auth/current");
+                this.user = result.data;
+                this.notify("绑定成功，欢迎进入系统");
+                await this.afterLogin();
+            } catch (error) {
+                this.notify(error.message, true);
+            }
+        },
         async openTab(tab) {
             this.tab = tab;
             if (tab === "violations") await this.loadViolations();
             if (tab === "appeals") await this.loadAppeals();
             if (tab === "students") await this.loadStudents();
+            if (tab === "permissions") {
+                await this.loadStudents();
+                await this.loadPermissionOptions();
+            }
         },
         async loadColleges() {
             const result = await this.request("/global/colleges");
             this.colleges = result.data || [];
+        },
+        async loadDorms() {
+            const query = this.filters.college_id ? `?college_id=${encodeURIComponent(this.filters.college_id)}` : "";
+            const result = await this.request(`/global/dorms${query}`);
+            this.dorms = result.data || [];
         },
         async loadViolations() {
             try {
@@ -228,21 +282,67 @@ createApp({
         async loadStudents() {
             try {
                 const result = await this.request("/student/list");
-                this.students = result.data || [];
+                this.students = (result.data || []).map(item => ({
+                    ...item,
+                    permissionList: item.permissions ? item.permissions.split(",").filter(Boolean) : [],
+                    edit_building_no: item.building_no || "",
+                    edit_room_no: item.room_no || ""
+                }));
             } catch (error) {
                 this.notify(error.message, true);
             }
         },
-        async authorize(item) {
+        async loadPermissionOptions() {
+            if (!this.canGrant) return;
+            const result = await this.request("/student/permissionOptions");
+            this.permissionOptions = result.data || [];
+        },
+        async savePermissions(item) {
             try {
-                await this.request("/student/authorize", {
+                await this.request("/student/updatePermissions", {
                     method: "POST",
                     body: JSON.stringify({
                         student_id: item.student_id,
-                        authorized: item.role !== "cadre"
+                        permissions: item.permissionList
                     })
                 });
                 this.notify("学生权限已更新");
+                await this.loadStudents();
+            } catch (error) {
+                this.notify(error.message, true);
+            }
+        },
+        async saveDorm(item) {
+            try {
+                await this.request("/student/updateDorm", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        student_id: item.student_id,
+                        building_no: item.edit_building_no,
+                        room_no: item.edit_room_no
+                    })
+                });
+                this.notify("宿舍成员信息已更新");
+                await this.loadStudents();
+            } catch (error) {
+                this.notify(error.message, true);
+            }
+        },
+        async importStudents() {
+            const students = this.importText.split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map(line => {
+                    const [student_id, name] = line.split(/[,\s，]+/);
+                    return { student_id, name };
+                });
+            try {
+                const result = await this.request("/student/importStudents", {
+                    method: "POST",
+                    body: JSON.stringify({ students })
+                });
+                this.notify(result.msg);
+                this.importText = "";
                 await this.loadStudents();
             } catch (error) {
                 this.notify(error.message, true);

@@ -36,36 +36,11 @@ public class StudentViolationController extends BaseController {
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public void list() {
+        requireBoundIfStudent();
         List<Object> args = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("select v.violation_id, v.college_id, c.college_name, "
-                + "v.building_no, v.room_no, v.violation_type, v.description, v.occurred_at, "
-                + "v.created_by_name, v.created_at, "
-                + "(select a.status from appeal_info a where a.violation_id = v.violation_id "
-                + "order by a.created_at desc limit 1) appeal_status "
-                + "from violation_info v join college c on c.college_id = v.college_id where 1 = 1");
-
-        if ("student".equals(currentUserType()) && !"cadre".equals(currentRole())) {
-            requireBoundDorm();
-            sql.append(" and v.college_id = ? and v.building_no = ? and v.room_no = ?");
-            args.add(currentCollegeId());
-            args.add(getSessionAttr("buildingNo"));
-            args.add(getSessionAttr("roomNo"));
-        } else {
-            AccessService.requireManager(this);
-            if (!AccessService.isSchoolTeacher(this)) {
-                sql.append(" and v.college_id = ?");
-                args.add(currentCollegeId());
-            } else if (notBlank(getPara("college_id"))) {
-                sql.append(" and v.college_id = ?");
-                args.add(getPara("college_id"));
-            }
-            if (notBlank(getPara("building_no"))) {
-                validateDorm(getPara("building_no"), getPara("room_no"));
-                sql.append(" and v.building_no = ? and v.room_no = ?");
-                args.add(getPara("building_no"));
-                args.add(getPara("room_no"));
-            }
-        }
+        StringBuilder sql = baseViolationSql();
+        applyViewScope(sql, args);
+        applyDormFilter(sql, args);
         sql.append(" order by v.occurred_at desc");
         ok("查询成功", Db.find(sql.toString(), args.toArray()));
     }
@@ -75,9 +50,9 @@ public class StudentViolationController extends BaseController {
     }
 
     public void add() {
-        AccessService.requireManager(this);
+        AccessService.Scope scope = AccessService.submitScope(this);
         Map<String, Object> params = body();
-        insertViolation(params);
+        insertViolation(params, scope);
         ok("违规信息已录入");
     }
 
@@ -112,23 +87,23 @@ public class StudentViolationController extends BaseController {
     }
 
     public void appealList() {
-        AccessService.requireManager(this);
-        List<Record> records;
-        String sql = "select a.appeal_id, a.violation_id, a.student_id, s.name student_name, a.reason, "
-                + "a.status, a.audit_reply, a.created_at, a.audited_at, v.college_id, v.building_no, "
+        AccessService.Scope scope = AccessService.auditScope(this);
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("select a.appeal_id, a.violation_id, a.student_id, s.name student_name, "
+                + "a.reason, a.status, a.audit_reply, a.created_at, a.audited_at, v.college_id, v.building_no, "
                 + "v.room_no, v.violation_type, v.description, v.occurred_at "
                 + "from appeal_info a join violation_info v on v.violation_id = a.violation_id "
-                + "join student_info s on s.student_id = a.student_id ";
-        if (AccessService.isSchoolTeacher(this)) {
-            records = Db.find(sql + "order by a.created_at desc");
-        } else {
-            records = Db.find(sql + "where v.college_id = ? order by a.created_at desc", currentCollegeId());
+                + "join student_info s on s.student_id = a.student_id where 1 = 1");
+        if (scope == AccessService.Scope.COLLEGE) {
+            sql.append(" and v.college_id = ?");
+            args.add(currentCollegeId());
         }
-        ok("查询成功", records);
+        sql.append(" order by a.created_at desc");
+        ok("查询成功", Db.find(sql.toString(), args.toArray()));
     }
 
     public void audit() {
-        AccessService.requireManager(this);
+        AccessService.Scope scope = AccessService.auditScope(this);
         Map<String, Object> params = body();
         String appealId = text(params.get("appeal_id"));
         String status = text(params.get("status"));
@@ -144,7 +119,7 @@ public class StudentViolationController extends BaseController {
         if (appeal == null) {
             throw new BusinessException(404, "申诉记录不存在");
         }
-        AccessService.checkCollege(this, appeal.getStr("college_id"));
+        AccessService.requireCollegeScope(this, appeal.getStr("college_id"), scope);
         if (!"pending".equals(appeal.getStr("status"))) {
             throw new BusinessException(400, "该申诉已经审核");
         }
@@ -154,7 +129,7 @@ public class StudentViolationController extends BaseController {
     }
 
     public void importExcel() {
-        AccessService.requireManager(this);
+        AccessService.Scope scope = AccessService.submitScope(this);
         UploadFile upload = getFile("file");
         if (upload == null) {
             throw new BusinessException(400, "请选择 Excel 文件");
@@ -177,7 +152,7 @@ public class StudentViolationController extends BaseController {
                         "description", value(formatter, row.getCell(4)),
                         "occurred_at", value(formatter, row.getCell(5))
                 );
-                insertViolation(item);
+                insertViolation(item, scope);
                 count++;
             }
         } catch (BusinessException e) {
@@ -193,26 +168,23 @@ public class StudentViolationController extends BaseController {
     }
 
     public void exportWeek() {
-        AccessService.requireManager(this);
+        AccessService.Scope scope = AccessService.viewScope(this);
         LocalDate monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDateTime start = monday.atStartOfDay();
         LocalDateTime end = monday.plusDays(7).atStartOfDay();
-        List<Record> records;
-        String sql = "select c.college_name, v.building_no, v.room_no, v.violation_type, "
+        List<Object> args = new ArrayList<>();
+        args.add(Timestamp.valueOf(start));
+        args.add(Timestamp.valueOf(end));
+        StringBuilder sql = new StringBuilder("select c.college_name, v.building_no, v.room_no, v.violation_type, "
                 + "v.description, v.occurred_at, v.created_by_name from violation_info v "
-                + "join college c on c.college_id = v.college_id where v.occurred_at >= ? "
-                + "and v.occurred_at < ?";
-        if (AccessService.isSchoolTeacher(this)) {
-            records = Db.find(sql + " order by v.college_id, v.building_no, v.room_no",
-                    Timestamp.valueOf(start), Timestamp.valueOf(end));
-        } else {
-            records = Db.find(sql + " and v.college_id = ? order by v.building_no, v.room_no",
-                    Timestamp.valueOf(start), Timestamp.valueOf(end), currentCollegeId());
-        }
+                + "join college c on c.college_id = v.college_id where v.occurred_at >= ? and v.occurred_at < ?");
+        appendScopeCondition(sql, args, scope, "v");
+        sql.append(" order by v.college_id, v.building_no, v.room_no");
+        List<Record> records = Db.find(sql.toString(), args.toArray());
 
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("本周违规汇总");
-            String[] headers = {"教学院", "楼栋号", "房间号", "违规类型", "情况说明", "发生时间", "录入人"};
+            String[] headers = {"教学学院", "楼栋号", "房间号", "违规类型", "情况说明", "发生时间", "录入人"};
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 header.createCell(i).setCellValue(headers[i]);
@@ -239,20 +211,72 @@ public class StudentViolationController extends BaseController {
         }
     }
 
-    private void insertViolation(Map<String, Object> params) {
+    private StringBuilder baseViolationSql() {
+        return new StringBuilder("select v.violation_id, v.college_id, c.college_name, "
+                + "v.building_no, v.room_no, v.violation_type, v.description, v.occurred_at, "
+                + "v.created_by_name, v.created_at, "
+                + "(select a.status from appeal_info a where a.violation_id = v.violation_id "
+                + "order by a.created_at desc limit 1) appeal_status "
+                + "from violation_info v join college c on c.college_id = v.college_id where 1 = 1");
+    }
+
+    private void applyViewScope(StringBuilder sql, List<Object> args) {
+        appendScopeCondition(sql, args, AccessService.viewScope(this), "v");
+        if (AccessService.viewScope(this) == AccessService.Scope.SCHOOL && notBlank(getPara("college_id"))) {
+            sql.append(" and v.college_id = ?");
+            args.add(getPara("college_id"));
+        }
+    }
+
+    private void appendScopeCondition(StringBuilder sql, List<Object> args, AccessService.Scope scope, String alias) {
+        if (scope == AccessService.Scope.SCHOOL) {
+            return;
+        }
+        if (scope == AccessService.Scope.COLLEGE) {
+            sql.append(" and ").append(alias).append(".college_id = ?");
+            args.add(currentCollegeId());
+            return;
+        }
+        if (scope == AccessService.Scope.CLASS) {
+            sql.append(" and exists (select 1 from student_info s where s.enabled = 1 ")
+                    .append("and s.college_id = ").append(alias).append(".college_id ")
+                    .append("and s.building_no = ").append(alias).append(".building_no ")
+                    .append("and s.room_no = ").append(alias).append(".room_no ")
+                    .append("and s.college_id = ? and s.class_code = ?)");
+            args.add(currentCollegeId());
+            args.add(getSessionAttr("classCode"));
+            return;
+        }
+        sql.append(" and ").append(alias).append(".college_id = ? and ")
+                .append(alias).append(".building_no = ? and ").append(alias).append(".room_no = ?");
+        args.add(currentCollegeId());
+        args.add(getSessionAttr("buildingNo"));
+        args.add(getSessionAttr("roomNo"));
+    }
+
+    private void applyDormFilter(StringBuilder sql, List<Object> args) {
+        if (notBlank(getPara("building_no")) || notBlank(getPara("room_no"))) {
+            validateDorm(getPara("building_no"), getPara("room_no"));
+            sql.append(" and v.building_no = ? and v.room_no = ?");
+            args.add(getPara("building_no"));
+            args.add(getPara("room_no"));
+        }
+    }
+
+    private void insertViolation(Map<String, Object> params, AccessService.Scope scope) {
         String collegeId = text(params.get("college_id"));
         String buildingNo = text(params.get("building_no"));
         String roomNo = text(params.get("room_no"));
         String type = text(params.get("violation_type"));
         String description = text(params.get("description"));
         validateDorm(buildingNo, roomNo);
-        AccessService.checkCollege(this, collegeId);
+        AccessService.requireCollegeScope(this, collegeId, scope);
         if (Db.findById("college", "college_id", collegeId) == null) {
-            throw new BusinessException(400, "教学院不存在");
+            throw new BusinessException(400, "教学学院不存在");
         }
         if (Db.findFirst("select 1 from dorm_info where college_id = ? and building_no = ? and room_no = ?",
                 collegeId, buildingNo, roomNo) == null) {
-            throw new BusinessException(400, "该宿舍不属于所选教学院");
+            throw new BusinessException(400, "该宿舍不属于所选教学学院");
         }
         if (type.isBlank() || type.length() > 50 || description.isBlank() || description.length() > 1000) {
             throw new BusinessException(400, "请正确填写违规类型和情况说明");
@@ -277,6 +301,12 @@ public class StudentViolationController extends BaseController {
             } catch (DateTimeParseException ignored) {
                 throw new BusinessException(400, "发生时间格式应为 yyyy-MM-dd HH:mm");
             }
+        }
+    }
+
+    private void requireBoundIfStudent() {
+        if ("student".equals(currentUserType())) {
+            requireBoundDorm();
         }
     }
 

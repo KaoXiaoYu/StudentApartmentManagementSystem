@@ -10,16 +10,17 @@ import service.AccessService;
 @Before({ApiExceptionInterceptor.class, AuthInterceptor.class})
 public class GlobalController extends BaseController {
     public void colleges() {
-        if (AccessService.isSchoolTeacher(this)) {
+        if (AccessService.viewScope(this) == AccessService.Scope.SCHOOL
+                || AccessService.has(this, AccessService.TEACHER_GRANT_STUDENT_SCHOOL)) {
             ok("查询成功", Db.find("select college_id, college_name from college order by college_id"));
-        } else {
-            ok("查询成功", Db.find("select college_id, college_name from college where college_id = ?",
-                    currentCollegeId()));
+            return;
         }
+        ok("查询成功", Db.find("select college_id, college_name from college where college_id = ?",
+                currentCollegeId()));
     }
 
     public void dorms() {
-        if (AccessService.isSchoolTeacher(this)) {
+        if (AccessService.viewScope(this) == AccessService.Scope.SCHOOL) {
             String collegeId = getPara("college_id");
             if (collegeId == null || collegeId.isBlank()) {
                 ok("查询成功", Db.find("select college_id, building_no, room_no from dorm_info "
@@ -28,9 +29,9 @@ public class GlobalController extends BaseController {
                 ok("查询成功", Db.find("select college_id, building_no, room_no from dorm_info "
                         + "where college_id = ? order by building_no, room_no", collegeId));
             }
-        } else {
-            ok("查询成功", Db.find("select college_id, building_no, room_no from dorm_info "
-                    + "where college_id = ? order by building_no, room_no", currentCollegeId()));
+            return;
         }
+        ok("查询成功", Db.find("select college_id, building_no, room_no from dorm_info "
+                + "where college_id = ? order by building_no, room_no", currentCollegeId()));
     }
 }
