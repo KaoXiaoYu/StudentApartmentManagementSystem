@@ -3,6 +3,7 @@ import controller.AdminController;
 import controller.AuthController;
 import controller.GlobalController;
 import controller.HomeController;
+import controller.OrgController;
 import controller.StudentViolationController;
 import controller.StudentController;
 import model.Appeal;
@@ -41,6 +42,7 @@ public class BaseConfig extends JFinalConfig {
         routes.add("/admin", AdminController.class);
         routes.add("/violation", StudentViolationController.class);
         routes.add("/student", StudentController.class);
+        routes.add("/org", OrgController.class);
         routes.add("/global", GlobalController.class);
     }
 

@@ -22,6 +22,10 @@ public final class AccessService {
     public static final String TEACHER_AUDIT_SCHOOL = "TEACHER_AUDIT_SCHOOL";
     public static final String TEACHER_GRANT_STUDENT_COLLEGE = "TEACHER_GRANT_STUDENT_COLLEGE";
     public static final String TEACHER_GRANT_STUDENT_SCHOOL = "TEACHER_GRANT_STUDENT_SCHOOL";
+    public static final String TEACHER_MANAGE_COLLEGE = "TEACHER_MANAGE_COLLEGE";
+    public static final String TEACHER_MANAGE_CLASS_COLLEGE = "TEACHER_MANAGE_CLASS_COLLEGE";
+    public static final String TEACHER_MANAGE_CLASS_SCHOOL = "TEACHER_MANAGE_CLASS_SCHOOL";
+    public static final String SYSTEM_MANAGE_TEACHER_PERMISSION = "SYSTEM_MANAGE_TEACHER_PERMISSION";
 
     private AccessService() {
     }
@@ -33,6 +37,13 @@ public final class AccessService {
     public static void requireTeacher(Controller controller) {
         if (!"teacher".equals(controller.getSessionAttr("userType"))) {
             throw new BusinessException(403, "该功能仅限教师使用");
+        }
+    }
+
+    public static void requireTeacherPermissionAdmin(Controller controller) {
+        requireTeacher(controller);
+        if (!has(controller, SYSTEM_MANAGE_TEACHER_PERMISSION)) {
+            throw new BusinessException(403, "无教师权限维护权限");
         }
     }
 
@@ -123,13 +134,31 @@ public final class AccessService {
         throw new BusinessException(403, "无学生授权权限");
     }
 
+    public static void requireCollegeManage(Controller controller) {
+        requireTeacher(controller);
+        if (!has(controller, TEACHER_MANAGE_COLLEGE)) {
+            throw new BusinessException(403, "无教学院维护权限");
+        }
+    }
+
+    public static Scope classManageScope(Controller controller) {
+        requireTeacher(controller);
+        if (has(controller, TEACHER_MANAGE_CLASS_SCHOOL)) {
+            return Scope.SCHOOL;
+        }
+        if (has(controller, TEACHER_MANAGE_CLASS_COLLEGE)) {
+            return Scope.COLLEGE;
+        }
+        throw new BusinessException(403, "无班级维护权限");
+    }
+
     public static void requireCollegeScope(Controller controller, String collegeId, Scope scope) {
         if (scope == Scope.SCHOOL) {
             return;
         }
         String ownCollegeId = controller.getSessionAttr("collegeId");
         if (collegeId == null || !collegeId.equals(ownCollegeId)) {
-            throw new BusinessException(403, "无权管理其他教学学院的数据");
+            throw new BusinessException(403, "无权管理其他教学院的数据");
         }
     }
 
