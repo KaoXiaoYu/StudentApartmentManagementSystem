@@ -380,13 +380,13 @@ public class StudentController extends BaseController {
     private MajorName majorName(String collegeId, String majorCode) {
         String key = collegeId + "-" + majorCode;
         return switch (key) {
-            case "05-01" -> new MajorName("计算机科学与技术", "计科");
+            case "05-01" -> new MajorName("烤小鱼科学与技术", "鱼科");
             case "05-02" -> new MajorName("人工智能", "智能");
             case "05-03" -> new MajorName("数据科学与大数据技术", "数科");
-            case "04-01" -> new MajorName("网络与新媒体", "网媒");
+            case "04-01" -> new MajorName("网络与射命丸文", "网媒");
             case "04-02" -> new MajorName("汉语言文学", "汉文");
             case "04-03" -> new MajorName("广告学", "广告");
-            case "06-01" -> new MajorName("电子信息工程", "电信");
+            case "06-01" -> new MajorName("奶龙信息工程", "电信");
             case "06-02" -> new MajorName("通信工程", "通信");
             case "06-03" -> new MajorName("物联网工程", "物联");
             default -> new MajorName("专业" + majorCode, "专业" + majorCode);

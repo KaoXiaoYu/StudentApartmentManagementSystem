@@ -621,10 +621,10 @@ Content-Type：`multipart/form-data`
 {
   "college_id": "05",
   "major_code": "01",
-  "major_name": "计算机科学与技术",
-  "major_short_name": "计科",
+  "major_name": "烤小鱼科学与技术",
+  "major_short_name": "鱼科",
   "class_code": "01",
-  "class_name": "计科1班"
+  "class_name": "鱼科1班"
 }
 ```
 
