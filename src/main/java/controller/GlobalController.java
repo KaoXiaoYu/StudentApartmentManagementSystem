@@ -10,8 +10,7 @@ import service.AccessService;
 @Before({ApiExceptionInterceptor.class, AuthInterceptor.class})
 public class GlobalController extends BaseController {
     public void colleges() {
-        if (AccessService.viewScope(this) == AccessService.Scope.SCHOOL
-                || AccessService.has(this, AccessService.TEACHER_GRANT_STUDENT_SCHOOL)) {
+        if (canSeeAllColleges()) {
             ok("查询成功", Db.find("select college_id, college_name from college order by college_id"));
             return;
         }
@@ -33,5 +32,12 @@ public class GlobalController extends BaseController {
         }
         ok("查询成功", Db.find("select college_id, building_no, room_no from dorm_info "
                 + "where college_id = ? order by building_no, room_no", currentCollegeId()));
+    }
+
+    private boolean canSeeAllColleges() {
+        return AccessService.viewScope(this) == AccessService.Scope.SCHOOL
+                || AccessService.has(this, AccessService.TEACHER_GRANT_STUDENT_SCHOOL)
+                || AccessService.has(this, AccessService.TEACHER_MANAGE_COLLEGE)
+                || AccessService.has(this, AccessService.TEACHER_MANAGE_CLASS_SCHOOL);
     }
 }

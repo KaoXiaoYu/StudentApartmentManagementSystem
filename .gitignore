@@ -24,3 +24,5 @@ vue-demo/.DS_Store
 # OS
 .DS_Store
 Thumbs.db
+/src/target/classes/config.properties
+/src/target/classes/database.properties

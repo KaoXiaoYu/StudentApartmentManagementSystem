@@ -358,7 +358,15 @@ Content-Type：`multipart/form-data`
 }
 ```
 
-### 5.4 导出本周违规汇总
+### 5.4 下载违规导入模板
+
+`GET /violation/importTemplate`
+
+权限：学生干部、学院教师、校级教师。
+
+响应：Excel 文件下载，列顺序与 `/violation/importExcel` 一致。
+
+### 5.5 导出本周违规汇总
 
 `GET /violation/exportWeek`
 
@@ -506,33 +514,139 @@ Content-Type：`multipart/form-data`
 }
 ```
 
-### 7.2 授权或撤销学生干部
+### 7.2 检索可授权学生
 
-`POST /student/authorize`
+`GET /student/search?keyword=张三`
 
-权限：学院教师、校级教师。
+权限：具备学生授权权限的学院教师或校级教师。
+
+`keyword` 可以是手机号、学号、姓名，或 `14-524` 这种楼栋号-宿舍号格式；为空时返回权限范围内全部学生。姓名重复时会返回所有匹配学生；学院教师只能检索本学院学生。
+
+### 7.3 更新学生权限
+
+`POST /student/updatePermissions`
+
+权限：具备学生授权权限的学院教师或校级教师。
 
 请求体：
 
 ```json
 {
-  "student_id": "20260000001",
-  "authorized": true
+  "student_id": "26050140101",
+  "permissions": ["STUDENT_VIEW_COLLEGE", "STUDENT_SUBMIT_COLLEGE"]
 }
 ```
 
-| `authorized` | 结果 |
-| --- | --- |
-| `true` | 将角色改为 `cadre` |
-| `false` | 将角色改为 `student` |
+学院教师只能修改本教学院学生，且只能授予寝室级或院级学生权限；校级教师可以修改任意教学院学生。
 
-学院教师只能修改本教学院学生，校级教师可以修改任意教学院学生。
+### 7.4 导入学生账号
 
-## 8. curl 测试流程
+`POST /student/importStudents`
+
+权限：教师。
+
+请求体：
+
+```json
+{
+  "students": [
+    { "student_id": "26050140121", "name": "张三" },
+    { "student_id": "26050140122", "name": "李四" }
+  ]
+}
+```
+
+### 7.5 Excel 导入学生账号
+
+`POST /student/importExcel`
+
+权限：教师。上传格式为 `multipart/form-data`，字段名为 `file`。
+
+### 7.6 下载学生导入模板
+
+`GET /student/importTemplate`
+
+权限：教师。响应为 Excel 文件下载。
+
+## 8. 组织管理
+
+### 8.1 权限码
+
+| 权限码 | 范围 | 说明 |
+| --- | --- | --- |
+| `TEACHER_MANAGE_COLLEGE` | 全校 | 增删改查教学院 |
+| `TEACHER_MANAGE_CLASS_COLLEGE` | 本院 | 增删改查所属教学院班级 |
+| `TEACHER_MANAGE_CLASS_SCHOOL` | 全校 | 增删改查全校班级 |
+
+### 8.2 查询教学院
+
+`GET /org/collegeList`
+
+权限：`TEACHER_MANAGE_COLLEGE`。
+
+### 8.3 保存教学院
+
+`POST /org/saveCollege`
+
+```json
+{
+  "college_id": "05",
+  "college_name": "人工智能学院"
+}
+```
+
+### 8.4 删除教学院
+
+`POST /org/deleteCollege`
+
+```json
+{
+  "college_id": "05"
+}
+```
+
+已有班级、宿舍、学生或教师关联时不能删除。
+
+### 8.5 查询班级
+
+`GET /org/classList`
+
+校级班级维护权限可追加 `college_id` 筛选；院级班级维护权限固定查询本教学院。
+
+### 8.6 保存班级
+
+`POST /org/saveClass`
+
+```json
+{
+  "college_id": "05",
+  "major_code": "01",
+  "major_name": "烤小鱼科学与技术",
+  "major_short_name": "鱼科",
+  "class_code": "01",
+  "class_name": "鱼科1班"
+}
+```
+
+### 8.7 删除班级
+
+`POST /org/deleteClass`
+
+```json
+{
+  "college_id": "05",
+  "major_code": "01",
+  "class_code": "01"
+}
+```
+
+已有学生关联时不能删除；仅有教师关联时允许删除。
+
+## 9. curl 测试流程
 
 以下命令在项目部署到 `/SAMS` 后执行。`cookies.txt` 用于保存登录 Cookie。
 
-### 8.1 登录并保存 Cookie
+### 9.1 登录并保存 Cookie
 
 ```bash
 curl -i -c cookies.txt \
@@ -541,13 +655,13 @@ curl -i -c cookies.txt \
   http://localhost:8080/SAMS/auth/login
 ```
 
-### 8.2 携带 Cookie 查询当前用户
+### 9.2 携带 Cookie 查询当前用户
 
 ```bash
 curl -b cookies.txt http://localhost:8080/SAMS/auth/current
 ```
 
-### 8.3 学生干部录入违规
+### 9.3 学生干部录入违规
 
 ```bash
 curl -b cookies.txt \
@@ -556,13 +670,13 @@ curl -b cookies.txt \
   http://localhost:8080/SAMS/violation/add
 ```
 
-### 8.4 查询违规并取得 `violation_id`
+### 9.4 查询违规并取得 `violation_id`
 
 ```bash
 curl -b cookies.txt http://localhost:8080/SAMS/violation/list
 ```
 
-### 8.5 上传 Excel
+### 9.5 上传 Excel
 
 ```bash
 curl -b cookies.txt \
@@ -570,7 +684,7 @@ curl -b cookies.txt \
   http://localhost:8080/SAMS/violation/importExcel
 ```
 
-### 8.6 下载本周汇总
+### 9.6 下载本周汇总
 
 ```bash
 curl -b cookies.txt \
@@ -578,13 +692,13 @@ curl -b cookies.txt \
   http://localhost:8080/SAMS/violation/exportWeek
 ```
 
-### 8.7 退出
+### 9.7 退出
 
 ```bash
 curl -b cookies.txt http://localhost:8080/SAMS/auth/logout
 ```
 
-## 9. 推荐测试顺序
+## 10. 推荐测试顺序
 
 1. 使用学生干部账号登录。
 2. 调用 `/global/colleges` 和 `/global/dorms` 检查基础数据。
@@ -595,5 +709,51 @@ curl -b cookies.txt http://localhost:8080/SAMS/auth/logout
 7. 退出并重新使用学生干部账号登录。
 8. 调用 `/violation/appealList` 取得申诉编号。
 9. 调用 `/violation/audit` 完成审核。
-10. 使用学院教师测试 `/student/list` 和 `/student/authorize`。
+10. 使用学院教师测试 `/student/search` 和 `/student/updatePermissions`。
 11. 使用校级教师测试跨学院查询和全校汇总导出。
+
+## 11. 本轮新增和修订接口
+
+### 11.1 学生检索
+
+`GET /student/list?keyword=14-524`
+
+`GET /student/search?keyword=14-524`
+
+`keyword` 支持学号、手机号、姓名，以及 `楼栋号-宿舍号` 格式，例如 `14-524`。参数为空时返回当前账号权限范围内的全部学生。
+
+### 11.2 重置学生密码
+
+`POST /student/resetPassword`
+
+教师只能重置其管理范围内学生的密码。成功后密码为 `123456`。
+
+```json
+{
+  "student_id": "26050140101"
+}
+```
+
+### 11.3 系统管理员维护教师权限
+
+系统管理员权限码：`SYSTEM_MANAGE_TEACHER_PERMISSION`。
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/admin/teacherList` | 查询教师列表 |
+| `GET` | `/admin/teacherPermissionOptions` | 查询可授予教师权限 |
+| `POST` | `/admin/updateTeacherPermissions` | 更新教师权限 |
+
+`/admin/updateTeacherPermissions` 不能授予系统管理员权限，也不能修改系统管理员自身权限。
+
+`/admin/teacherList` 支持 `keyword` 参数，可按工号、手机号、姓名、角色、学院名称、班级编号检索。
+
+`/org/collegeList` 支持 `keyword` 参数，可按教学院编号或名称检索。
+
+`/org/classList` 支持 `keyword` 参数，可按学院、专业、班级相关字段检索。
+
+### 11.4 班级删除规则
+
+`POST /org/deleteClass`
+
+已有学生绑定时不能删除；仅有教师关联时允许删除。

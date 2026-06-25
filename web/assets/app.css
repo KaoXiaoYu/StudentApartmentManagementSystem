@@ -124,12 +124,23 @@ td small { margin-top: 4px; color: var(--muted); }
 .form-grid label { margin: 9px 0; }
 .form-grid .full { grid-column: 1 / -1; }
 .batch-card { align-self: start; }
+.full-panel { grid-column: 1 / -1; }
 .upload-box { display: grid; justify-items: center; padding: 28px 18px; border: 1px dashed #b8cec7; border-radius: 14px; background: #f7faf9; text-align: center; }
+.upload-box.compact { margin-top: 14px; padding: 18px; }
 .upload-icon { display: grid; width: 58px; height: 58px; margin-bottom: 13px; place-items: center; border-radius: 15px; color: var(--green-800); background: var(--green-100); font-size: 12px; font-weight: 850; }
 .upload-box p { color: var(--muted); font-size: 12px; line-height: 1.6; }
 .file-button { margin-top: 7px; }
 .file-button input { display: none; }
 .batch-card .block { margin-top: 11px; }
+.mini-table { display: grid; gap: 8px; }
+.mini-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .9fr) 34px; gap: 8px; align-items: center; }
+.mini-row input { padding: 9px 10px; }
+.mini-head { color: var(--muted); font-size: 12px; font-weight: 750; }
+.icon-button { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 9px; color: #63766f; background: #edf2f0; font-size: 18px; line-height: 1; }
+.search-row { display: grid; grid-template-columns: minmax(260px, 420px) auto; gap: 10px; align-items: center; margin-bottom: 16px; }
+.inline-search { grid-template-columns: minmax(220px, 1fr) auto auto; margin-bottom: 0; }
+.wide-search { grid-template-columns: minmax(140px, .8fr) minmax(180px, 1fr) auto auto; }
+.text-button:disabled { color: #a9b5b1; cursor: not-allowed; }
 .alert { margin: 0 0 18px; padding: 12px 14px; border-radius: 11px; color: #1c654f; background: #ddf2ea; font-size: 14px; }
 .alert.error { color: #963e3e; background: #fae4e4; }
 .login-card .alert { margin-top: 14px; }
@@ -169,6 +180,9 @@ td small { margin-top: 4px; color: var(--muted); }
     .card { padding: 17px; }
     .card-head, .filters { align-items: stretch; flex-direction: column; }
     .filters input, .filters select { width: 100%; }
+    .search-row { grid-template-columns: 1fr; }
+    .inline-search { grid-template-columns: 1fr; }
+    .mini-row { grid-template-columns: minmax(128px, 1.2fr) minmax(90px, .8fr) 34px; }
     .form-grid { grid-template-columns: 1fr; }
     .form-grid .full { grid-column: auto; }
 }

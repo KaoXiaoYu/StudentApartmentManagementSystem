@@ -4,12 +4,22 @@ import base.BaseController;
 import com.jfinal.aop.Before;
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
+import com.jfinal.upload.UploadFile;
 import exception.BusinessException;
 import intercept.ApiExceptionInterceptor;
 import intercept.AuthInterceptor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import service.AccessService;
 import service.PasswordService;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,25 +31,21 @@ public class StudentController extends BaseController {
         AccessService.requireTeacher(this);
         AccessService.Scope scope = studentManageScope();
         List<Object> args = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("select s.student_id, s.phone_number, s.name, s.role, "
-                + "s.college_id, c.college_name, s.major_code, s.study_years, s.class_code, s.serial_no, "
-                + "s.building_no, s.room_no, s.first_login_required, "
-                + "coalesce(group_concat(sp.permission_code order by sp.permission_code separator ','), '') permissions "
-                + "from student_info s join college c on c.college_id = s.college_id "
-                + "left join student_permission sp on sp.student_id = s.student_id where s.enabled = 1");
-        if (scope == AccessService.Scope.COLLEGE) {
-            sql.append(" and s.college_id = ?");
-            args.add(currentCollegeId());
-        } else if (scope == AccessService.Scope.CLASS) {
-            sql.append(" and s.college_id = ? and s.class_code = ?");
-            args.add(currentCollegeId());
-            args.add(getSessionAttr("classCode"));
-        } else if (notBlank(getPara("college_id"))) {
-            sql.append(" and s.college_id = ?");
-            args.add(getPara("college_id"));
-        }
+        StringBuilder sql = studentSql().append(" where s.enabled = 1");
+        applyStudentScope(sql, args, scope);
+        applyStudentKeyword(sql, args, getPara("keyword"));
         sql.append(" group by s.student_id order by s.college_id, s.class_code, s.student_id");
-        ok("查询成功", Db.find(sql.toString(), args.toArray()));
+        ok("查询成功", withDisplayNames(Db.find(sql.toString(), args.toArray())));
+    }
+
+    public void search() {
+        AccessService.Scope scope = AccessService.grantScope(this);
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = studentSql().append(" where s.enabled = 1");
+        applyStudentScope(sql, args, scope);
+        applyStudentKeyword(sql, args, getPara("keyword"));
+        sql.append(" group by s.student_id order by s.college_id, s.class_code, s.student_id limit 80");
+        ok("查询成功", withDisplayNames(Db.find(sql.toString(), args.toArray())));
     }
 
     public void permissionOptions() {
@@ -84,37 +90,87 @@ public class StudentController extends BaseController {
         ok("学生权限已更新");
     }
 
+    public void resetPassword() {
+        AccessService.requireTeacher(this);
+        AccessService.Scope scope = studentManageScope();
+        String studentId = text(body().get("student_id"));
+        Record student = Db.findFirst("select student_id, college_id, class_code from student_info "
+                        + "where enabled = 1 and student_id = ?",
+                studentId);
+        if (student == null) {
+            throw new BusinessException(404, "学生账号不存在");
+        }
+        AccessService.requireCollegeScope(this, student.getStr("college_id"), scope);
+        if (scope == AccessService.Scope.CLASS && !student.getStr("class_code").equals(getSessionAttr("classCode"))) {
+            throw new BusinessException(403, "基础教师只能重置自己班级学生的密码");
+        }
+        Db.update("update student_info set password_hash = ?, first_login_required = 1 where student_id = ?",
+                PasswordService.hash("123456"), studentId);
+        ok("学生密码已重置为 123456");
+    }
+
     public void importStudents() {
         AccessService.requireTeacher(this);
-        Map<String, Object> params = body();
-        List<Map<String, Object>> rows = mapList(params.get("students"));
-        if (rows.isEmpty()) {
-            throw new BusinessException(400, "请提供要导入的学生列表");
+        int count = importStudentRows(mapList(body().get("students")));
+        ok("成功导入 " + count + " 名学生");
+    }
+
+    public void importExcel() {
+        AccessService.requireTeacher(this);
+        UploadFile upload = getFile("file");
+        if (upload == null) {
+            throw new BusinessException(400, "请选择 Excel 文件");
         }
-        AccessService.Scope scope = studentManageScope();
+        File file = upload.getFile();
         int count = 0;
-        for (Map<String, Object> row : rows) {
-            StudentNo no = parseStudentNo(text(row.get("student_id")));
-            AccessService.requireCollegeScope(this, no.collegeId, scope);
-            if (scope == AccessService.Scope.CLASS && !no.classCode.equals(getSessionAttr("classCode"))) {
-                throw new BusinessException(403, "基础教师只能导入自己班级的学生");
+        try (Workbook workbook = WorkbookFactory.create(file)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            DataFormatter formatter = new DataFormatter();
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null || value(formatter, row.getCell(0)).isBlank()) {
+                    continue;
+                }
+                rows.add(Map.of(
+                        "student_id", value(formatter, row.getCell(0)),
+                        "name", value(formatter, row.getCell(1))
+                ));
             }
-            String name = text(row.get("name"));
-            if (name.isBlank() || name.length() > 50) {
-                throw new BusinessException(400, "学生姓名不能为空且不能超过 50 字");
+            count = importStudentRows(rows);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(400, "Excel 读取失败，请使用系统模板");
+        } finally {
+            if (file.exists()) {
+                file.delete();
             }
-            ensureCollege(no.collegeId);
-            Db.update("insert into student_info(student_id, name, password_hash, role, college_id, major_code, "
-                            + "study_years, class_code, serial_no, first_login_required, enabled, created_at) "
-                            + "values (?, ?, ?, 'student', ?, ?, ?, ?, ?, 1, 1, now()) "
-                            + "on duplicate key update name = values(name), college_id = values(college_id), "
-                            + "major_code = values(major_code), study_years = values(study_years), "
-                            + "class_code = values(class_code), serial_no = values(serial_no), enabled = 1",
-                    no.studentId, name, PasswordService.hash("123456"), no.collegeId, no.majorCode,
-                    no.studyYears, no.classCode, no.serialNo);
-            count++;
         }
         ok("成功导入 " + count + " 名学生");
+    }
+
+    public void importTemplate() {
+        AccessService.requireTeacher(this);
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("学生导入模板");
+            String[] headers = {"学号", "姓名"};
+            Row header = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                header.createCell(i).setCellValue(headers[i]);
+                sheet.setColumnWidth(i, 4800);
+            }
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("26050140101");
+            row.createCell(1).setCellValue("张三");
+            File output = File.createTempFile("sams-students-template-", ".xlsx");
+            try (FileOutputStream stream = new FileOutputStream(output)) {
+                workbook.write(stream);
+            }
+            renderFile(output, "学生导入模板.xlsx");
+        } catch (Exception e) {
+            throw new BusinessException(500, "模板下载失败");
+        }
     }
 
     public void bindProfile() {
@@ -159,17 +215,18 @@ public class StudentController extends BaseController {
             collegeId = currentCollegeId();
         }
         AccessService.requireCollegeScope(this, collegeId, scope);
+        List<Object> args = new ArrayList<>();
+        StringBuilder sql = studentSql()
+                .append(" where s.enabled = 1 and s.college_id = ? and s.building_no = ? and s.room_no = ?");
+        args.add(collegeId);
+        args.add(buildingNo);
+        args.add(roomNo);
         if (scope == AccessService.Scope.CLASS) {
-            ok("查询成功", Db.find("select student_id, name, phone_number, college_id, class_code, building_no, room_no "
-                            + "from student_info where enabled = 1 and college_id = ? and class_code = ? "
-                            + "and building_no = ? and room_no = ? order by student_id",
-                    collegeId, getSessionAttr("classCode"), buildingNo, roomNo));
-            return;
+            sql.append(" and s.class_code = ?");
+            args.add(getSessionAttr("classCode"));
         }
-        ok("查询成功", Db.find("select student_id, name, phone_number, college_id, class_code, building_no, room_no "
-                        + "from student_info where enabled = 1 and college_id = ? and building_no = ? and room_no = ? "
-                        + "order by student_id",
-                collegeId, buildingNo, roomNo));
+        sql.append(" group by s.student_id order by s.student_id");
+        ok("查询成功", withDisplayNames(Db.find(sql.toString(), args.toArray())));
     }
 
     public void updateDorm() {
@@ -199,6 +256,19 @@ public class StudentController extends BaseController {
         ok("宿舍成员信息已更新");
     }
 
+    private StringBuilder studentSql() {
+        return new StringBuilder("select s.student_id, s.phone_number, s.name, s.role, "
+                + "s.college_id, c.college_name, s.major_code, ci.major_name db_major_name, "
+                + "ci.major_short_name db_major_short_name, ci.class_name db_class_name, "
+                + "s.study_years, s.class_code, s.serial_no, "
+                + "s.building_no, s.room_no, s.first_login_required, "
+                + "coalesce(group_concat(sp.permission_code order by sp.permission_code separator ','), '') permissions "
+                + "from student_info s join college c on c.college_id = s.college_id "
+                + "left join class_info ci on ci.college_id = s.college_id "
+                + "and ci.major_code = s.major_code and ci.class_code = s.class_code "
+                + "left join student_permission sp on sp.student_id = s.student_id");
+    }
+
     private AccessService.Scope studentManageScope() {
         if (AccessService.has(this, AccessService.TEACHER_GRANT_STUDENT_SCHOOL)
                 || AccessService.has(this, AccessService.TEACHER_VIEW_SCHOOL)) {
@@ -209,6 +279,69 @@ public class StudentController extends BaseController {
             return AccessService.Scope.COLLEGE;
         }
         return AccessService.Scope.CLASS;
+    }
+
+    private void applyStudentScope(StringBuilder sql, List<Object> args, AccessService.Scope scope) {
+        if (scope == AccessService.Scope.COLLEGE) {
+            sql.append(" and s.college_id = ?");
+            args.add(currentCollegeId());
+        } else if (scope == AccessService.Scope.CLASS) {
+            sql.append(" and s.college_id = ? and s.class_code = ?");
+            args.add(currentCollegeId());
+            args.add(getSessionAttr("classCode"));
+        } else if (notBlank(getPara("college_id"))) {
+            sql.append(" and s.college_id = ?");
+            args.add(getPara("college_id"));
+        }
+    }
+
+    private void applyStudentKeyword(StringBuilder sql, List<Object> args, String rawKeyword) {
+        String keyword = text(rawKeyword);
+        if (keyword.isBlank()) {
+            return;
+        }
+        String like = "%" + keyword + "%";
+        sql.append(" and (s.student_id like ? or s.phone_number like ? or s.name like ?");
+        args.add(like);
+        args.add(like);
+        args.add(like);
+        if (keyword.matches("\\d{2}-\\d{3}")) {
+            String[] dorm = keyword.split("-");
+            sql.append(" or (s.building_no = ? and s.room_no = ?)");
+            args.add(dorm[0]);
+            args.add(dorm[1]);
+        }
+        sql.append(")");
+    }
+
+    private int importStudentRows(List<Map<String, Object>> rows) {
+        if (rows.isEmpty()) {
+            throw new BusinessException(400, "请提供要导入的学生列表");
+        }
+        AccessService.Scope scope = studentManageScope();
+        int count = 0;
+        for (Map<String, Object> row : rows) {
+            StudentNo no = parseStudentNo(text(row.get("student_id")));
+            AccessService.requireCollegeScope(this, no.collegeId, scope);
+            if (scope == AccessService.Scope.CLASS && !no.classCode.equals(getSessionAttr("classCode"))) {
+                throw new BusinessException(403, "基础教师只能导入自己班级的学生");
+            }
+            String name = text(row.get("name"));
+            if (name.isBlank() || name.length() > 50) {
+                throw new BusinessException(400, "学生姓名不能为空且不能超过 50 字");
+            }
+            ensureCollege(no.collegeId);
+            Db.update("insert into student_info(student_id, name, password_hash, role, college_id, major_code, "
+                            + "study_years, class_code, serial_no, first_login_required, enabled, created_at) "
+                            + "values (?, ?, ?, 'student', ?, ?, ?, ?, ?, 1, 1, now()) "
+                            + "on duplicate key update name = values(name), college_id = values(college_id), "
+                            + "major_code = values(major_code), study_years = values(study_years), "
+                            + "class_code = values(class_code), serial_no = values(serial_no), enabled = 1",
+                    no.studentId, name, PasswordService.hash("123456"), no.collegeId, no.majorCode,
+                    no.studyYears, no.classCode, no.serialNo);
+            count++;
+        }
+        return count;
     }
 
     private void ensureCollege(String collegeId) {
@@ -224,6 +357,48 @@ public class StudentController extends BaseController {
         }
         return new StudentNo(studentId, studentId.substring(2, 4), studentId.substring(4, 6),
                 studentId.substring(6, 7), studentId.substring(7, 9), studentId.substring(9, 11));
+    }
+
+    private List<Record> withDisplayNames(List<Record> records) {
+        for (Record record : records) {
+            String collegeId = record.getStr("college_id");
+            String majorCode = record.getStr("major_code");
+            String classCode = record.getStr("class_code");
+            MajorName major = majorName(collegeId, majorCode);
+            String majorName = notBlank(record.getStr("db_major_name")) ? record.getStr("db_major_name") : major.fullName;
+            String majorShortName = notBlank(record.getStr("db_major_short_name")) ? record.getStr("db_major_short_name") : major.shortName;
+            String className = notBlank(record.getStr("db_class_name"))
+                    ? record.getStr("db_class_name")
+                    : majorShortName + classNumber(classCode) + "班";
+            record.set("major_name", majorName);
+            record.set("major_short_name", majorShortName);
+            record.set("class_name", className);
+        }
+        return records;
+    }
+
+    private MajorName majorName(String collegeId, String majorCode) {
+        String key = collegeId + "-" + majorCode;
+        return switch (key) {
+            case "05-01" -> new MajorName("烤小鱼科学与技术", "鱼科");
+            case "05-02" -> new MajorName("人工智能", "智能");
+            case "05-03" -> new MajorName("数据科学与大数据技术", "数科");
+            case "04-01" -> new MajorName("网络与射命丸文", "网媒");
+            case "04-02" -> new MajorName("汉语言文学", "汉文");
+            case "04-03" -> new MajorName("广告学", "广告");
+            case "06-01" -> new MajorName("奶龙信息工程", "电信");
+            case "06-02" -> new MajorName("通信工程", "通信");
+            case "06-03" -> new MajorName("物联网工程", "物联");
+            default -> new MajorName("专业" + majorCode, "专业" + majorCode);
+        };
+    }
+
+    private String classNumber(String classCode) {
+        try {
+            return String.valueOf(Integer.parseInt(classCode));
+        } catch (Exception e) {
+            return classCode;
+        }
     }
 
     private List<String> stringList(Object value) {
@@ -264,6 +439,10 @@ public class StudentController extends BaseController {
         }
     }
 
+    private String value(DataFormatter formatter, Cell cell) {
+        return cell == null ? "" : formatter.formatCellValue(cell).trim();
+    }
+
     private String text(Object value) {
         return value == null ? "" : value.toString().trim();
     }
@@ -274,5 +453,8 @@ public class StudentController extends BaseController {
 
     private record StudentNo(String studentId, String collegeId, String majorCode, String studyYears,
                              String classCode, String serialNo) {
+    }
+
+    private record MajorName(String fullName, String shortName) {
     }
 }

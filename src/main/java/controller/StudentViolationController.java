@@ -167,6 +167,35 @@ public class StudentViolationController extends BaseController {
         ok("成功导入 " + count + " 条违规记录");
     }
 
+    public void importTemplate() {
+        AccessService.submitScope(this);
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("违规导入模板");
+            String[] headers = {"教学学院编号", "楼栋号", "房间号", "违规类型", "情况说明", "发生时间"};
+            Row header = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                header.createCell(i).setCellValue(headers[i]);
+                sheet.setColumnWidth(i, i == 4 ? 12000 : 4500);
+            }
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("05");
+            row.createCell(1).setCellValue("01");
+            row.createCell(2).setCellValue("101");
+            row.createCell(3).setCellValue("卫生不合格");
+            row.createCell(4).setCellValue("地面未清扫，桌面杂物较多");
+            row.createCell(5).setCellValue("2026-06-10 09:30");
+            File output = File.createTempFile("sams-violation-template-", ".xlsx");
+            try (FileOutputStream stream = new FileOutputStream(output)) {
+                workbook.write(stream);
+            }
+            renderFile(output, "违规记录导入模板.xlsx");
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(500, "模板下载失败");
+        }
+    }
+
     public void exportWeek() {
         AccessService.Scope scope = AccessService.viewScope(this);
         LocalDate monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
